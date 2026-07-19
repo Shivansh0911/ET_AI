@@ -34,12 +34,15 @@ Free hosts for a small FastAPI service that needs to "always work" during a hack
    | **Start Command** | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
    | **Instance Type** | `Free` |
 
-5. Scroll to **Environment Variables** → **Add Environment Variable** and add both of these (paste your actual key values, not the words themselves):
+5. Scroll to **Environment Variables** → **Add Environment Variable** and add all three of these (paste your actual key values, not the words themselves):
 
    | Key | Value |
    |---|---|
    | `GROQ_API_KEY` | *your Groq key from console.groq.com* |
    | `TAVILY_API_KEY` | *your Tavily key from app.tavily.com (optional — app degrades gracefully without it)* |
+   | `PYTHON_VERSION` | `3.11.9` |
+
+   The `PYTHON_VERSION` variable is important — without it, Render may default to a brand-new Python (e.g. 3.14) that doesn't have a prebuilt `pydantic-core` wheel yet, which fails the build with `error: metadata-generation-failed`. The repo also ships a `.python-version` file as a fallback, but setting the env var explicitly is the most reliable fix if a build still picks the wrong version.
 
 6. Click **Create Web Service**. Render will build and deploy — first deploy takes 2-5 minutes. Watch the **Logs** tab for `Uvicorn running on http://0.0.0.0:...` to confirm success.
 7. Once live, copy the URL Render gives you — it looks like:
