@@ -134,5 +134,6 @@ def refresh_logs():
     return {"status": "refreshed", "total_events": len(CURRENT_LOGS), "anomalies": len(CURRENT_ANOMALIES)}
 
 if __name__ == "__main__":
+    import os
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))

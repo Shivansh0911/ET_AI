@@ -46,6 +46,10 @@ npm run dev
 
 The frontend proxies `/api/*` to `http://localhost:8000` in dev (see `vite.config.js`).
 
+## Deployment
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for step-by-step free hosting instructions (Render for the backend + a free uptime pinger to keep it always warm, Netlify for the frontend).
+
 ## Notes
 
 - Everything runs in memory — `/api/refresh` regenerates a fresh synthetic event stream on demand.
