@@ -17,9 +17,10 @@ from agents.attack_mapper import build_kill_chain, predict_next_move
 from agents.copilot import chat_with_copilot
 from agents.response_orchestrator import generate_playbook
 from agents.threat_intel import search_threat_intel
-from engine import attribution, replay
+from engine import attribution, fusion, replay
 from engine.assets import ASSETS, PROVENANCE
 from engine.metrics_registry import attribution as attribution_metrics
+from engine.metrics_registry import fusion as fusion_metrics
 from engine.metrics_registry import snapshot
 from utils.mitre_loader import source_info
 
@@ -38,6 +39,8 @@ LLM_CACHE_TTL = 300  # seconds — the free Groq tier will rate-limit under demo
 
 _stream = replay.build_stream(STREAM_SIZE)
 _detections = detect_anomalies(_stream["events"])
+_hosts = fusion.host_signals()
+_incidents = fusion.correlate(_stream["events"], _hosts)
 _llm_cache: dict[str, tuple[float, object]] = {}
 
 
@@ -113,6 +116,27 @@ def get_dashboard():
 def get_metrics():
     """Measured evaluation results — the numbers the problem statement grades."""
     return snapshot(latency=_stream["latency"])
+
+
+@app.get("/api/incidents")
+def get_incidents():
+    """Compound incidents from cross-plane correlation.
+
+    `fusion_only` incidents are the interesting ones: nothing in that window crossed the
+    detection threshold, so a single-sensor pipeline would have stayed silent.
+    """
+    return {
+        "incidents": _incidents["incidents"],
+        "summary": _incidents["summary"],
+        "method": _incidents["method"],
+        "host_plane": {
+            "captures": len(_hosts),
+            "source": "OTRF/Security-Datasets — real Windows telemetry, ATT&CK-labelled",
+            "placement": "asset and window assignment is illustrative; the telemetry and the "
+                         "attributed technique are real",
+        },
+        "measured": fusion_metrics(),
+    }
 
 
 @app.get("/api/attribution")
@@ -198,12 +222,14 @@ def copilot_chat(req: CopilotRequest):
 @app.post("/api/refresh")
 def refresh_stream():
     """Re-score a fresh slice of held-out flows."""
-    global _stream, _detections
+    global _stream, _detections, _incidents
     _stream = replay.build_stream(STREAM_SIZE, seed=int(time.time()) % 100_000)
     _detections = detect_anomalies(_stream["events"])
+    _incidents = fusion.correlate(_stream["events"], _hosts)
     _llm_cache.clear()
     return {"status": "refreshed", "total_events": len(_stream["events"]),
-            "anomalies": len(_detections), "latency": _stream["latency"]}
+            "anomalies": len(_detections), "incidents": _incidents["summary"],
+            "latency": _stream["latency"]}
 
 
 if __name__ == "__main__":

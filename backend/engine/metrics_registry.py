@@ -69,6 +69,14 @@ def attribution() -> dict:
     return {"available": True, "provenance": "measured", **report}
 
 
+def fusion() -> dict:
+    report = _read("fusion.json")
+    if not report:
+        return {"available": False,
+                "reason": "metrics/fusion.json missing — run ml/eval_fusion.py"}
+    return {"available": True, "provenance": "measured", **report}
+
+
 def dataset_report() -> dict:
     return _read("dataset_report.json") or {"available": False}
 
@@ -78,6 +86,7 @@ def snapshot(latency: dict | None = None, automation: dict | None = None) -> dic
     return {
         "detection": detection(),
         "attribution": attribution(),
+        "fusion": fusion(),
         "latency": {"provenance": "measured", **latency} if latency else
                    {"available": False, "reason": "no events processed yet"},
         "automation": {"provenance": "measured", **automation} if automation else
