@@ -11,6 +11,10 @@ frontend/dist/
 frontend/.env
 frontend/.env.local
 
+# Datasets — downloaded on demand, never committed (see backend/ml/download_datasets.py)
+backend/data/raw/
+backend/data/processed/
+
 # OS
 .DS_Store
 Thumbs.db

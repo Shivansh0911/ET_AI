@@ -1,0 +1,148 @@
+{
+  "files": [
+    {
+      "file": "Friday-WorkingHours-Afternoon-DDos.pcap_ISCX.csv",
+      "rows_read": 225745,
+      "dropped_nan_inf": 34,
+      "dropped_duplicate": 2629,
+      "rows_kept": 223082
+    },
+    {
+      "file": "Friday-WorkingHours-Afternoon-PortScan.pcap_ISCX.csv",
+      "rows_read": 286467,
+      "dropped_nan_inf": 371,
+      "dropped_duplicate": 73842,
+      "rows_kept": 212254
+    },
+    {
+      "file": "Friday-WorkingHours-Morning.pcap_ISCX.csv",
+      "rows_read": 191033,
+      "dropped_nan_inf": 122,
+      "dropped_duplicate": 10827,
+      "rows_kept": 180084
+    },
+    {
+      "file": "Monday-WorkingHours.pcap_ISCX.csv",
+      "rows_read": 529918,
+      "dropped_nan_inf": 437,
+      "dropped_duplicate": 36876,
+      "rows_kept": 492605
+    },
+    {
+      "file": "Thursday-WorkingHours-Afternoon-Infilteration.pcap_ISCX.csv",
+      "rows_read": 288602,
+      "dropped_nan_inf": 207,
+      "dropped_duplicate": 45955,
+      "rows_kept": 242440
+    },
+    {
+      "file": "Thursday-WorkingHours-Morning-WebAttacks.pcap_ISCX.csv",
+      "rows_read": 170366,
+      "dropped_nan_inf": 135,
+      "dropped_duplicate": 15774,
+      "rows_kept": 154457
+    },
+    {
+      "file": "Tuesday-WorkingHours.pcap_ISCX.csv",
+      "rows_read": 445909,
+      "dropped_nan_inf": 264,
+      "dropped_duplicate": 39178,
+      "rows_kept": 406467
+    },
+    {
+      "file": "Wednesday-workingHours.pcap_ISCX.csv",
+      "rows_read": 692703,
+      "dropped_nan_inf": 1297,
+      "dropped_duplicate": 104815,
+      "rows_kept": 586591
+    }
+  ],
+  "rows_read": 2830743,
+  "dropped_nan_inf": 2867,
+  "dropped_duplicate": 329896,
+  "source": "CIC-IDS2017 (Hugging Face mirror c01dsnap/CIC-IDS2017, original MachineLearningCVE CSVs from the Canadian Institute for Cybersecurity)",
+  "rows_kept": 2497980,
+  "features_total": 77,
+  "features_used": 69,
+  "zero_variance_dropped": [
+    "Bwd PSH Flags",
+    "Bwd URG Flags",
+    "Fwd Avg Bytes/Bulk",
+    "Fwd Avg Packets/Bulk",
+    "Fwd Avg Bulk Rate",
+    "Bwd Avg Bytes/Bulk",
+    "Bwd Avg Packets/Bulk",
+    "Bwd Avg Bulk Rate"
+  ],
+  "split": {
+    "scheme": "deterministic round-robin, 3/10 to test",
+    "exactly_stratified_per_family": true
+  },
+  "family_totals": {
+    "BENIGN": {
+      "train": 1450576,
+      "test": 621678
+    },
+    "DDoS": {
+      "train": 89608,
+      "test": 38406
+    },
+    "PortScan": {
+      "train": 63484,
+      "test": 27210
+    },
+    "Bot": {
+      "train": 1363,
+      "test": 585
+    },
+    "Infiltration": {
+      "train": 24,
+      "test": 12
+    },
+    "Web Attack - Brute Force": {
+      "train": 1029,
+      "test": 441
+    },
+    "Web Attack - XSS": {
+      "train": 455,
+      "test": 197
+    },
+    "Web Attack - Sql Injection": {
+      "train": 14,
+      "test": 7
+    },
+    "FTP-Patator": {
+      "train": 4151,
+      "test": 1780
+    },
+    "SSH-Patator": {
+      "train": 2253,
+      "test": 966
+    },
+    "DoS slowloris": {
+      "train": 3760,
+      "test": 1614
+    },
+    "DoS Slowhttptest": {
+      "train": 3659,
+      "test": 1569
+    },
+    "DoS Hulk": {
+      "train": 120991,
+      "test": 51855
+    },
+    "DoS GoldenEye": {
+      "train": 7196,
+      "test": 3086
+    },
+    "Heartbleed": {
+      "train": 7,
+      "test": 4
+    }
+  },
+  "caveats": [
+    "Original (uncorrected) CIC-IDS2017 release; known label/duplication defects documented by Engelen et al. 2021 and Lanvin et al. 2022.",
+    "Exact duplicate flows removed globally across all eight capture files.",
+    "'Destination Port' retained as a feature; it carries some service-identity signal and can flatter a classifier on this dataset."
+  ]
+}
