@@ -38,6 +38,10 @@ export const api = {
   getIncidents: () => request('/api/incidents'),
   getAttribution: (limit = 12) => request(`/api/attribution?limit=${limit}`),
   getAudit: (limit = 100) => request(`/api/audit?limit=${limit}`),
+  getFeedback: () => request('/api/feedback'),
+  sendFeedback: (alertId, verdict) =>
+    request('/api/feedback', { method: 'POST', body: JSON.stringify({ alert_id: alertId, verdict }) }),
+  resetFeedback: () => request('/api/feedback/reset', { method: 'POST' }),
   verifyAudit: () => request('/api/audit/verify'),
   simulateTamper: () => request('/api/audit/simulate-tamper', { method: 'POST' }),
 

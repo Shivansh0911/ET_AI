@@ -1,92 +1,86 @@
 import { useEffect, useState } from 'react'
-import { ChevronRight, TrendingUp } from 'lucide-react'
+import { ChevronRight } from 'lucide-react'
 import { api } from '../utils/api'
-import SeverityBadge from './SeverityBadge'
+import { Panel, Severity, Answer, Loading, Failed, Empty, Row, Provenance } from './ui'
 
 export default function AttackChain() {
-  const [chain, setChain] = useState([])
-  const [prediction, setPrediction] = useState('')
-  const [table, setTable] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [data, setData] = useState(null)
   const [error, setError] = useState(null)
   const [selected, setSelected] = useState(null)
 
   useEffect(() => {
-    api.getKillChain()
-      .then((res) => {
-        setChain(res.kill_chain || [])
-        setPrediction(res.next_move_prediction || '')
-        setTable(res.attack_table || null)
-      })
-      .catch(() => setError('Unable to load kill chain data.'))
-      .finally(() => setLoading(false))
+    api.getKillChain().then(setData).catch(() => setError('Could not load the kill chain.'))
   }, [])
 
-  if (loading) return <div className="text-gray-500 p-8 text-center">Analyzing kill chain...</div>
-  if (error) return <div className="text-red-400 p-8 text-center">{error}</div>
+  if (error) return <Failed>{error}</Failed>
+  if (!data) return <Loading>Assembling the chain…</Loading>
+
+  const chain = data.kill_chain || []
 
   return (
-    <div>
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-gray-200">MITRE ATT&amp;CK Kill Chain</h2>
-        {table && (
-          <p className="text-xs text-gray-500 mt-1">
-            {table.technique_count.toLocaleString()} techniques from {table.source} — {table.provenance}.
-            Stages are anchored on the earliest detection per tactic, so the progression reads
-            forward in time.
-          </p>
-        )}
+    <div className="space-y-4">
+      <div>
+        <h1 className="text-[15px] font-semibold text-content">Kill chain</h1>
+        <p className="mt-0.5 max-w-3xl text-[12px] leading-relaxed text-content-faint">
+          {data.attack_table.technique_count.toLocaleString()} techniques from the official
+          MITRE STIX bundle. Each stage is anchored on its earliest detection, so the sequence
+          reads forward in time rather than by whichever alert happened to arrive last.
+        </p>
       </div>
 
       {chain.length === 0 ? (
-        <div className="bg-card border border-gray-800 rounded-xl p-8 text-center text-gray-500">
-          No kill chain progression observed yet.
-        </div>
+        <Empty>Nothing in this window maps to a technique yet.</Empty>
       ) : (
-        <div className="bg-card border border-gray-800 rounded-xl p-4 overflow-x-auto mb-4">
-          <div className="flex items-stretch gap-2 min-w-max pb-2">
+        <Panel title="Observed progression">
+          <div className="flex items-stretch gap-2 overflow-x-auto pb-1">
             {chain.map((stage, i) => (
-              <div key={i} className="flex items-center gap-2">
+              <div key={stage.tactic} className="flex items-center gap-2">
                 <button
-                  onClick={() => setSelected(stage)}
-                  className={`min-w-[180px] text-left p-3 rounded-lg border transition ${
-                    selected?.technique_id === stage.technique_id
-                      ? 'border-emerald-500/50 bg-gray-900'
-                      : 'border-gray-800 bg-gray-900/50 hover:border-gray-700'
+                  onClick={() => setSelected(selected?.tactic === stage.tactic ? null : stage)}
+                  className={`min-w-[168px] rounded-md border p-3 text-left transition-colors ${
+                    selected?.tactic === stage.tactic
+                      ? 'border-accent-line bg-accent-soft'
+                      : 'border-ink-700 bg-ink-800 hover:border-ink-600'
                   }`}
                 >
-                  <div className="text-xs text-gray-500 uppercase mono">{stage.tactic}</div>
-                  <div className="text-sm font-semibold text-gray-200 mt-1">{stage.technique_name}</div>
-                  <div className="text-xs text-gray-500 mono mt-1">{stage.technique_id}</div>
-                  <div className="mt-2"><SeverityBadge severity={stage.severity} /></div>
+                  <div className="text-label uppercase text-content-faint">{stage.tactic}</div>
+                  <div className="mt-1 text-[13px] font-medium text-content">
+                    {stage.technique_name}
+                  </div>
+                  <div className="mono mt-0.5 text-[11px] text-content-faint">
+                    {stage.technique_id} · {stage.detections} detection{stage.detections === 1 ? '' : 's'}
+                  </div>
+                  <div className="mt-2"><Severity level={stage.severity} /></div>
                 </button>
-                {i < chain.length - 1 && <ChevronRight className="text-gray-700 shrink-0" size={20} />}
+                {i < chain.length - 1 && (
+                  <ChevronRight className="shrink-0 text-ink-600" size={16} />
+                )}
               </div>
             ))}
           </div>
-        </div>
+        </Panel>
       )}
 
       {selected && (
-        <div className="bg-card border border-gray-800 rounded-xl p-4 mb-4">
-          <h3 className="text-sm font-semibold text-gray-400 mb-1">Stage Detail</h3>
-          <p className="text-sm text-gray-300">{selected.event}</p>
-          <p className="text-xs text-gray-500 mt-1 mono">
-            Asset: {selected.asset} · {selected.detections} detection(s) · peak score {selected.max_score}
-          </p>
-          <p className="text-xs text-gray-600 mt-0.5 mono">
-            First seen {selected.first_seen} · last seen {selected.last_seen}
-          </p>
-        </div>
+        <Panel title={`${selected.technique_id} · ${selected.technique_name}`}>
+          <p className="text-[13px] text-content-muted">{selected.event}</p>
+          <div className="mt-2">
+            <Row label="asset">{selected.asset}</Row>
+            <Row label="detections">{selected.detections}</Row>
+            <Row label="peak score">{selected.max_score}</Row>
+            <Row label="first seen">{selected.first_seen}</Row>
+            <Row label="last seen">{selected.last_seen}</Row>
+          </div>
+        </Panel>
       )}
 
-      <div className="bg-card border border-gray-800 rounded-xl p-4">
-        <div className="flex items-center gap-2 mb-2">
-          <TrendingUp size={16} className="text-emerald-400" />
-          <h3 className="text-sm font-semibold text-gray-400">AI Next-Move Prediction</h3>
-        </div>
-        <p className="text-sm text-gray-300 whitespace-pre-wrap leading-relaxed">{prediction}</p>
-      </div>
+      <Panel
+        title="Projected next move"
+        subtitle="Groq reasoning over the stages above. A projection, not a measurement."
+        actions={<Provenance kind="illustrative" />}
+      >
+        <Answer>{data.next_move_prediction}</Answer>
+      </Panel>
     </div>
   )
 }

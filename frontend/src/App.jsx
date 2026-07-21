@@ -1,68 +1,66 @@
 import { useState } from 'react'
-import { Shield, LayoutDashboard, Map, Link2, ClipboardList, MessageSquare, GitMerge, FlaskConical, ScrollText } from 'lucide-react'
-import Dashboard from './components/Dashboard'
-import ThreatMap from './components/ThreatMap'
-import AttackChain from './components/AttackChain'
+import { Activity, GitMerge, Link2, FlaskConical, ClipboardList, ScrollText } from 'lucide-react'
+import Overview from './components/Overview'
 import Incidents from './components/Incidents'
+import AttackChain from './components/AttackChain'
 import Evidence from './components/Evidence'
-import AuditLedger from './components/AuditLedger'
 import ResponsePanel from './components/ResponsePanel'
-import CopilotChat from './components/CopilotChat'
+import AuditLedger from './components/AuditLedger'
+import CopilotDock from './components/CopilotDock'
 
+// Six screens, ordered by how often an analyst would open them. The copilot is no longer one
+// of them — it floats over all six, because you ask questions about data without leaving it.
 const TABS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'map', label: 'Threat Map', icon: Map },
-  { id: 'incidents', label: 'Incidents', icon: GitMerge },
-  { id: 'killchain', label: 'Kill Chain', icon: Link2 },
-  { id: 'evidence', label: 'Evidence', icon: FlaskConical },
-  { id: 'response', label: 'Response', icon: ClipboardList },
-  { id: 'audit', label: 'Audit', icon: ScrollText },
-  { id: 'copilot', label: 'Copilot', icon: MessageSquare },
+  { id: 'overview', label: 'Overview', icon: Activity, component: Overview },
+  { id: 'incidents', label: 'Incidents', icon: GitMerge, component: Incidents },
+  { id: 'chain', label: 'Kill chain', icon: Link2, component: AttackChain },
+  { id: 'evidence', label: 'Evidence', icon: FlaskConical, component: Evidence },
+  { id: 'response', label: 'Response', icon: ClipboardList, component: ResponsePanel },
+  { id: 'audit', label: 'Audit', icon: ScrollText, component: AuditLedger },
 ]
 
 export default function App() {
-  const [tab, setTab] = useState('dashboard')
+  const [active, setActive] = useState('overview')
+  const Current = TABS.find((t) => t.id === active).component
 
   return (
-    <div className="min-h-screen bg-base text-gray-100">
-      <header className="border-b border-gray-800 bg-card/50 backdrop-blur px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-        <div className="flex items-center gap-2">
-          <Shield className="text-emerald-400" size={22} />
-          <span className="text-lg font-bold tracking-wider mono">CYBERSENTINEL</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-emerald-400">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
-          SYSTEM ACTIVE
+    <div className="min-h-screen bg-ink-950">
+      <header className="sticky top-0 z-20 border-b border-ink-700 bg-ink-950/85 backdrop-blur">
+        <div className="mx-auto flex max-w-[1400px] items-center gap-8 px-6">
+          <div className="flex items-baseline gap-2 py-4">
+            <span className="text-[15px] font-semibold tracking-tight text-content">
+              CyberSentinel
+            </span>
+            <span className="text-[11px] text-content-faint">
+              behavioural detection, corrected by analysts
+            </span>
+          </div>
+
+          <nav className="-mb-px flex gap-1 overflow-x-auto">
+            {TABS.map(({ id, label, icon: Icon }) => (
+              <button
+                key={id}
+                onClick={() => setActive(id)}
+                className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-3 py-4
+                  text-[13px] transition-colors ${
+                    active === id
+                      ? 'border-accent text-content'
+                      : 'border-transparent text-content-faint hover:text-content-muted'
+                  }`}
+              >
+                <Icon size={14} />
+                {label}
+              </button>
+            ))}
+          </nav>
         </div>
       </header>
 
-      <nav className="border-b border-gray-800 px-6 flex gap-1 overflow-x-auto">
-        {TABS.map(({ id, label, icon: Icon }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`flex items-center gap-2 px-4 py-3 text-sm border-b-2 transition whitespace-nowrap ${
-              tab === id
-                ? 'border-emerald-400 text-emerald-400'
-                : 'border-transparent text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            <Icon size={15} />
-            {label}
-          </button>
-        ))}
-      </nav>
-
-      <main className="p-6 max-w-7xl mx-auto">
-        {tab === 'dashboard' && <Dashboard />}
-        {tab === 'map' && <ThreatMap />}
-        {tab === 'incidents' && <Incidents />}
-        {tab === 'killchain' && <AttackChain />}
-        {tab === 'evidence' && <Evidence />}
-        {tab === 'response' && <ResponsePanel />}
-        {tab === 'audit' && <AuditLedger />}
-        {tab === 'copilot' && <CopilotChat />}
+      <main className="mx-auto max-w-[1400px] px-6 py-6">
+        <Current />
       </main>
+
+      <CopilotDock />
     </div>
   )
 }
