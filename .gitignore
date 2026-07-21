@@ -15,6 +15,9 @@ frontend/.env.local
 backend/data/raw/
 backend/data/processed/
 
+# Runtime audit chain — regenerated per process, never a committed artifact
+backend/data/audit_ledger.jsonl
+
 # OS
 .DS_Store
 Thumbs.db

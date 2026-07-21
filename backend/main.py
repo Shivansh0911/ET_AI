@@ -17,7 +17,7 @@ from agents.attack_mapper import build_kill_chain, predict_next_move
 from agents.copilot import chat_with_copilot
 from agents.response_orchestrator import generate_playbook
 from agents.threat_intel import search_threat_intel
-from engine import attribution, fusion, replay
+from engine import attribution, fusion, ledger, replay
 from engine.assets import ASSETS, PROVENANCE
 from engine.metrics_registry import attribution as attribution_metrics
 from engine.metrics_registry import fusion as fusion_metrics
@@ -42,6 +42,7 @@ _detections = detect_anomalies(_stream["events"])
 _hosts = fusion.host_signals()
 _incidents = fusion.correlate(_stream["events"], _hosts)
 _llm_cache: dict[str, tuple[float, object]] = {}
+_last_coverage: dict | None = None  # automation coverage from the most recent playbook run
 
 
 def _cached(key: str, produce):
@@ -115,7 +116,7 @@ def get_dashboard():
 @app.get("/api/metrics")
 def get_metrics():
     """Measured evaluation results — the numbers the problem statement grades."""
-    return snapshot(latency=_stream["latency"])
+    return snapshot(latency=_stream["latency"], automation=_last_coverage)
 
 
 @app.get("/api/incidents")
@@ -207,11 +208,34 @@ def get_threat_intel(req: ThreatIntelRequest):
 
 @app.post("/api/respond")
 def generate_response(req: RespondRequest):
+    global _last_coverage
     alert = _detections[0] if _detections else {
         "id": "none", "severity": "info", "description": "No active detections"}
     if req.alert_id and req.alert_id != "latest":
         alert = next((a for a in _detections if a["id"] == req.alert_id), alert)
-    return generate_playbook(alert, build_kill_chain(_detections))
+
+    playbook = generate_playbook(alert, build_kill_chain(_detections))
+    _last_coverage = playbook["execution"]["coverage"]
+    return playbook
+
+
+@app.get("/api/audit")
+def get_audit(limit: int = 100):
+    """Every automated action taken, newest last, with the chain's integrity state."""
+    return {"entries": ledger.entries(limit), "verification": ledger.verify(),
+            "stats": ledger.stats()}
+
+
+@app.get("/api/audit/verify")
+def verify_audit():
+    """Re-walk the hash chain and report the first break, if any."""
+    return ledger.verify()
+
+
+@app.post("/api/audit/simulate-tamper")
+def simulate_tamper():
+    """Demonstrate tamper detection against a copy — the live chain is never modified."""
+    return ledger.simulate_tamper()
 
 
 @app.post("/api/copilot")
