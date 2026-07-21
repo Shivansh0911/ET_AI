@@ -1,7 +1,8 @@
 import { lazy, Suspense, useState } from 'react'
-import { Activity, GitMerge, Route, FlaskConical, ClipboardList, ScrollText, ShieldCheck } from 'lucide-react'
+import { Activity, GitMerge, Route, FlaskConical, ClipboardList, ScrollText, BookOpen } from 'lucide-react'
 import Overview from './components/Overview'
 import Argus from './components/Argus'
+import Logo from './components/Logo'
 import { Loading } from './components/ui'
 
 // Operations is the landing screen and loads eagerly. The rest arrive on first visit, which
@@ -11,10 +12,8 @@ const AttackChain = lazy(() => import('./components/AttackChain'))
 const Evidence = lazy(() => import('./components/Evidence'))
 const ResponsePanel = lazy(() => import('./components/ResponsePanel'))
 const AuditLedger = lazy(() => import('./components/AuditLedger'))
+const About = lazy(() => import('./components/About'))
 
-// Six screens, ordered the way an analyst moves: what is happening, what it adds up to, how far
-// it has got, whether to believe any of it, what to do, and what was done. The assistant is not
-// among them — it floats, because you ask questions about data without walking away from it.
 const TABS = [
   { id: 'overview', label: 'Operations', icon: Activity, component: Overview },
   { id: 'incidents', label: 'Incidents', icon: GitMerge, component: Incidents },
@@ -24,26 +23,24 @@ const TABS = [
   { id: 'audit', label: 'Audit trail', icon: ScrollText, component: AuditLedger },
 ]
 
+// The guide is not one of the six working screens, so it sits apart in the header rather than
+// competing for a tab slot with the things an analyst uses every day.
+const GUIDE = { id: 'about', label: 'Guide', icon: BookOpen, component: About }
+
 export default function App() {
   const [active, setActive] = useState('overview')
-  const Current = TABS.find((t) => t.id === active).component
+  const current = [...TABS, GUIDE].find((t) => t.id === active)
+  const Current = current.component
 
   return (
     <div className="min-h-screen bg-surface-0">
-      <header className="sticky top-0 z-20 border-b border-line bg-surface-0/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-10 gap-y-1 px-6">
-          <div className="flex items-center gap-2.5 py-4">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg border
-              border-accent-line bg-accent-soft">
-              <ShieldCheck size={15} className="text-accent" />
-            </span>
-            <div className="leading-tight">
-              <div className="text-title font-semibold tracking-tight text-ink">CyberSentinel</div>
-              <div className="text-[11px] text-ink-faint">Detection that learns from your analysts</div>
-            </div>
-          </div>
+      <header className="sticky top-0 z-20 border-b border-line bg-surface-1/85 backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-8 gap-y-1 px-6">
+          <button onClick={() => setActive('overview')} className="py-3.5" aria-label="CyberSentinel home">
+            <Logo size={30} />
+          </button>
 
-          <nav className="-mb-px flex gap-0.5 overflow-x-auto">
+          <nav className="-mb-px flex flex-1 gap-0.5 overflow-x-auto">
             {TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -60,11 +57,24 @@ export default function App() {
               </button>
             ))}
           </nav>
+
+          <button
+            onClick={() => setActive(GUIDE.id)}
+            className={`my-2.5 flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5
+              text-meta font-medium transition-colors ${
+                active === GUIDE.id
+                  ? 'border-accent-line bg-accent-soft text-accent'
+                  : 'border-line bg-surface-2 text-ink-muted hover:border-line-strong hover:text-ink'
+              }`}
+          >
+            <BookOpen size={13} />
+            What is this?
+          </button>
         </div>
       </header>
 
       <main className="mx-auto max-w-[1440px] px-6 py-6">
-        <Suspense fallback={<Loading>Opening {TABS.find((t) => t.id === active).label}</Loading>}>
+        <Suspense fallback={<Loading>Opening {current.label}</Loading>}>
           <Current />
         </Suspense>
       </main>

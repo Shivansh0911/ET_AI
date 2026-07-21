@@ -6,11 +6,10 @@ import {
 import { RotateCw, Undo2, ChevronDown } from 'lucide-react'
 import { api } from '../utils/api'
 import {
-  AXIS, Answer, Button, Card, CHART_TOOLTIP, DataRow, Empty, Failed, GRID,
-  Loading, Mono, Provenance, SectionTitle, Severity, Stat, severityHex,
+  AXIS, Answer, Button, Card, DataRow, Empty, Failed, GRID, Loading, Mono, Note,
+  Provenance, SERIES, Severity, Stat, StatStrip, TOOLTIP, TOOLTIP_FILL, VIZ, severityHex,
 } from './ui'
 import TriageQueue from './TriageQueue'
-import ThreatMap from './ThreatMap'
 
 // The screen leads with four numbers and one chart. Everything else is behind a click, because
 // an analyst arriving at a console needs to know "is it bad, and is it getting worse" before
@@ -22,13 +21,11 @@ function hourlyVolume(events) {
     const at = new Date(event.timestamp)
     at.setMinutes(0, 0, 0)
     const key = at.toISOString()
-    const bucket = buckets.get(key) || { key, label: `${String(at.getHours()).padStart(2, '0')}:00`,
-      flows: 0, detections: 0, critical: 0 }
-    bucket.flows += 1
-    if (event.detected) {
-      bucket.detections += 1
-      if (event.severity === 'critical') bucket.critical += 1
+    const bucket = buckets.get(key) || {
+      key, label: `${String(at.getHours()).padStart(2, '0')}:00`, flows: 0, detections: 0,
     }
+    bucket.flows += 1
+    if (event.detected) bucket.detections += 1
     buckets.set(key, bucket)
   }
   return [...buckets.values()].sort((a, b) => a.key.localeCompare(b.key))
@@ -107,7 +104,7 @@ export default function Overview() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-title font-semibold text-ink">Operations</h1>
+          <h1 className="text-heading font-semibold text-ink">Operations</h1>
           <p className="mt-1 text-meta text-ink-faint">{dashboard.stream_source}</p>
         </div>
         <div className="flex items-center gap-2">
@@ -120,24 +117,16 @@ export default function Overview() {
         </div>
       </div>
 
-      <div className="rounded-card border border-severity-medium/25 bg-severity-medium/[0.06] px-4.5 py-3.5">
-        <div className="flex items-center gap-2">
-          <Provenance kind="illustrative" />
-          <span className="text-body font-medium text-ink">Before you read the numbers</span>
-        </div>
-        <p className="mt-1.5 text-meta leading-relaxed text-ink-muted">{dashboard.data_provenance}</p>
-      </div>
-
-      {/* Four numbers. Not fourteen. */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      {/* Headline numbers first — live window, then the benchmark they should be read against. */}
+      <StatStrip>
         <Card>
           <Stat
             label="Caught this window"
             value={`${(stats.recall * 100).toFixed(0)}%`}
             tone={stats.recall > 0.7 ? 'good' : stats.recall > 0.4 ? 'default' : 'bad'}
             delta={recallDelta}
-            deltaLabel="pts since you started triaging"
-            note={`${stats.caught} of ${stats.attacks} known attacks in this slice`}
+            deltaLabel="pts since you started"
+            note={`${stats.caught} of ${stats.attacks} known attacks`}
             size="display"
           />
         </Card>
@@ -158,32 +147,49 @@ export default function Overview() {
           <Stat label="Time to score a flow" value={dashboard.latency?.p50_ms ?? '—'} unit="ms p50"
             note={`p95 ${dashboard.latency?.p95_ms ?? '—'} ms · measured, not estimated`} />
         </Card>
-      </div>
+      </StatStrip>
 
-      {/* One primary visual. */}
+      {detection?.available && (
+        <Card
+          title="The detector before any of your input"
+          hint="Measured on capture days it never trained on. These are the numbers the loop above exists to move."
+          aside={<Provenance kind="measured" />}
+          tint="neutral"
+        >
+          <StatStrip columns={4}>
+            <Stat label="Precision" value={`${(detection.precision * 100).toFixed(1)}%`} size="tabular" />
+            <Stat label="Recall" value={`${(detection.recall * 100).toFixed(1)}%`} tone="bad" size="tabular" />
+            <Stat label="Missed" value={`${(detection.false_negative_rate * 100).toFixed(1)}%`}
+              tone="bad" size="tabular" note="false negatives" />
+            <Stat label="False alarms" value={`${(detection.false_positive_rate * 100).toFixed(2)}%`}
+              tone="good" size="tabular" />
+          </StatStrip>
+        </Card>
+      )}
+
       <Card
-        title="Traffic and detections over the window"
+        title="Traffic and detections across the window"
         hint="Every flow scored, hour by hour, with what the detector flagged laid over it."
       >
         <ResponsiveContainer width="100%" height={210}>
           <AreaChart data={stats.volume} margin={{ top: 4, right: 8, left: -22, bottom: 0 }}>
             <defs>
               <linearGradient id="flows" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#6d8cf5" stopOpacity={0.22} />
-                <stop offset="100%" stopColor="#6d8cf5" stopOpacity={0} />
+                <stop offset="0%" stopColor={VIZ[1]} stopOpacity={0.3} />
+                <stop offset="100%" stopColor={VIZ[1]} stopOpacity={0} />
               </linearGradient>
               <linearGradient id="hits" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#f0616a" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#f0616a" stopOpacity={0} />
+                <stop offset="0%" stopColor={SERIES.bad} stopOpacity={0.35} />
+                <stop offset="100%" stopColor={SERIES.bad} stopOpacity={0} />
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="2 5" stroke={GRID} vertical={false} />
             <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} interval={2} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} allowDecimals={false} />
-            <Tooltip contentStyle={CHART_TOOLTIP} cursor={{ stroke: '#2f3a4c' }} />
-            <Area type="monotone" dataKey="flows" stroke="#6d8cf5" strokeWidth={1.5}
+            <Tooltip {...TOOLTIP} />
+            <Area type="monotone" dataKey="flows" stroke={VIZ[1]} strokeWidth={1.6}
               fill="url(#flows)" name="flows scored" />
-            <Area type="monotone" dataKey="detections" stroke="#f0616a" strokeWidth={1.5}
+            <Area type="monotone" dataKey="detections" stroke={SERIES.bad} strokeWidth={1.6}
               fill="url(#hits)" name="detections" />
           </AreaChart>
         </ResponsiveContainer>
@@ -201,14 +207,17 @@ export default function Overview() {
         <div className="space-y-4 xl:col-span-2">
           <Card
             title="Training loop"
+            tint={state?.adaptive_active ? 'accent' : undefined}
             hint={state?.adaptive_active
               ? 'Live. Your verdicts are changing what gets flagged.'
               : 'Waiting for enough verdicts of each kind before it refits.'}
           >
-            <div className="grid grid-cols-2 gap-4">
-              <Stat label="Marked real" value={state?.confirmed ?? 0} tone="good" size="figure" />
-              <Stat label="Marked false" value={state?.dismissed ?? 0} tone="muted" size="figure" />
-            </div>
+            <StatStrip columns={3}>
+              <Stat label="Marked real" value={state?.confirmed ?? 0} tone="good" size="tabular" />
+              <Stat label="Marked false" value={state?.dismissed ?? 0} tone="muted" size="tabular" />
+              <Stat label="Refits" value={state?.model_version?.replace('live-v', '') ?? 0}
+                tone="accent" size="tabular" />
+            </StatStrip>
 
             {offline?.available && (
               <div className="mt-4 border-t border-line pt-3.5">
@@ -224,81 +233,15 @@ export default function Overview() {
                   {(offline.settings[1].before.recall * 100).toFixed(1)}% →{' '}
                   {(offline.settings[1].at_headline_budget.recall * 100).toFixed(1)}%
                 </DataRow>
-                <p className="mt-2 text-meta leading-relaxed text-ink-faint">
+                <Note>
                   Feedback fixes the campaign in front of you. It does not carry to an unfamiliar
                   one — new attack families still need their own verdicts.
-                </p>
+                </Note>
               </div>
             )}
           </Card>
 
-          {detection?.available && (
-            <Card title="Detector, on captures it never trained on" aside={<Provenance kind="measured" />}>
-              <div className="grid grid-cols-3 gap-3">
-                <Stat label="Precision" value={`${(detection.precision * 100).toFixed(1)}%`} size="figure" />
-                <Stat label="Recall" value={`${(detection.recall * 100).toFixed(1)}%`} tone="bad" size="figure" />
-                <Stat label="Missed" value={`${(detection.false_negative_rate * 100).toFixed(1)}%`}
-                  tone="bad" size="figure" note="false negatives" />
-              </div>
-              <p className="mt-3 text-meta leading-relaxed text-ink-faint">
-                False positive rate {(detection.false_positive_rate * 100).toFixed(2)}%. This is the
-                frozen model before any analyst input — the number the loop above is there to move.
-              </p>
-            </Card>
-          )}
-        </div>
-      </div>
-
-      <ThreatMap locations={dashboard.location_threats} detections={dashboard.recent_anomalies} />
-
-      {/* Progressive disclosure: the secondary breakdowns stay folded until asked for. */}
-      <button
-        onClick={() => setExpanded((v) => !v)}
-        className="flex w-full items-center justify-center gap-2 rounded-card border border-line
-          bg-surface-1 py-2.5 text-meta text-ink-faint transition-colors hover:text-ink-muted"
-      >
-        <ChevronDown size={13} className={expanded ? 'rotate-180 transition-transform' : 'transition-transform'} />
-        {expanded ? 'Hide breakdowns' : 'Severity, infrastructure and AI assessment'}
-      </button>
-
-      {expanded && (
-        <div className="grid grid-cols-1 gap-4 rise lg:grid-cols-3">
-          <Card title="Severity mix" hint="Across every flow scored, not just detections.">
-            <ResponsiveContainer width="100%" height={180}>
-              <PieChart>
-                <Pie data={severityData} dataKey="value" nameKey="name" innerRadius={44}
-                  outerRadius={70} paddingAngle={2} stroke="none">
-                  {severityData.map((entry) => (
-                    <Cell key={entry.name} fill={severityHex(entry.name)} />
-                  ))}
-                </Pie>
-                <Tooltip contentStyle={CHART_TOOLTIP} />
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="mt-1 space-y-1">
-              {severityData.map((s) => (
-                <div key={s.name} className="flex items-center justify-between text-meta">
-                  <Severity level={s.name} dot />
-                  <Mono>{s.value}</Mono>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          <Card title="Detections by sector" hint="Which kind of infrastructure is taking the hits.">
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={infraData} layout="vertical" margin={{ left: 34, right: 12 }}>
-                <CartesianGrid strokeDasharray="2 5" stroke={GRID} horizontal={false} />
-                <XAxis type="number" tick={AXIS} axisLine={false} tickLine={false} allowDecimals={false} />
-                <YAxis type="category" dataKey="name" tick={AXIS} axisLine={false} tickLine={false} width={92} />
-                <Tooltip contentStyle={CHART_TOOLTIP} cursor={{ fill: '#19202c' }} />
-                <Bar dataKey="value" fill="#6d8cf5" radius={[0, 3, 3, 0]} maxBarSize={16} />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-
-          <Card
-            title="Assessment"
+          <Card title="Assessment"
             hint="What the language model makes of the current cluster."
             aside={
               <Button size="sm" onClick={async () => {
@@ -315,7 +258,64 @@ export default function Overview() {
             )}
           </Card>
         </div>
+      </div>
+
+      {/* Progressive disclosure: secondary breakdowns stay folded until asked for. */}
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="flex w-full items-center justify-center gap-2 rounded-card border border-line
+          bg-surface-1 py-2.5 text-meta text-ink-faint transition-colors
+          hover:border-line-strong hover:text-ink-muted"
+      >
+        <ChevronDown size={13} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        {expanded ? 'Hide breakdowns' : 'Severity and sector breakdowns'}
+      </button>
+
+      {expanded && (
+        <div className="grid grid-cols-1 gap-4 rise lg:grid-cols-2">
+          <Card title="Severity mix" hint="Across every flow scored, not just detections.">
+            <div className="flex items-center gap-5">
+              <ResponsiveContainer width="55%" height={180}>
+                <PieChart>
+                  <Pie data={severityData} dataKey="value" nameKey="name" innerRadius={44}
+                    outerRadius={70} paddingAngle={2} stroke="none">
+                    {severityData.map((entry) => (
+                      <Cell key={entry.name} fill={severityHex(entry.name)} />
+                    ))}
+                  </Pie>
+                  <Tooltip {...TOOLTIP_FILL} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="flex-1 space-y-1.5">
+                {severityData.map((s) => (
+                  <div key={s.name} className="flex items-center justify-between text-meta">
+                    <Severity level={s.name} dot />
+                    <Mono>{s.value}</Mono>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+
+          <Card title="Detections by sector" hint="Which kind of infrastructure is taking the hits.">
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={infraData} layout="vertical" margin={{ left: 34, right: 12 }}>
+                <CartesianGrid strokeDasharray="2 5" stroke={GRID} horizontal={false} />
+                <XAxis type="number" tick={AXIS} axisLine={false} tickLine={false} allowDecimals={false} />
+                <YAxis type="category" dataKey="name" tick={AXIS} axisLine={false} tickLine={false} width={92} />
+                <Tooltip {...TOOLTIP_FILL} />
+                <Bar dataKey="value" radius={[0, 3, 3, 0]} maxBarSize={16} name="detections">
+                  {infraData.map((entry, i) => (
+                    <Cell key={entry.name} fill={VIZ[i % VIZ.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </div>
       )}
+
+      <Note>{dashboard.data_provenance}</Note>
     </div>
   )
 }

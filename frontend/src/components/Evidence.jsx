@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts'
+import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { api } from '../utils/api'
-import { AXIS, Card, CHART_TOOLTIP, DataRow, Empty, Failed, GRID, Loading, Provenance,
-  SectionTitle, Stat } from './ui'
+import {
+  AXIS, Card, DataRow, Empty, Failed, GRID, Loading, Note, Provenance,
+  SERIES, Stat, StatStrip, TOOLTIP,
+} from './ui'
 
 const pct = (v) => (v == null ? '—' : `${(v * 100).toFixed(2)}%`)
 const pct1 = (v) => (v == null ? '—' : `${(v * 100).toFixed(1)}%`)
@@ -12,35 +14,56 @@ export default function Evidence() {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    api.getMetrics().then(setMetrics).catch(() => setError('Could not load the metrics.'))
+    api.getMetrics().then(setMetrics).catch(() => setError('The metrics artifacts did not load.'))
   }, [])
 
   if (error) return <Failed>{error}</Failed>
-  if (!metrics) return <Loading>Reading evaluation artifacts…</Loading>
+  if (!metrics) return <Loading>Reading evaluation artifacts</Loading>
 
   const { detection, continual_learning: loop, attribution, fusion, automation, latency, baseline } = metrics
+  const campaign = loop?.settings?.[0]
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div>
-        <h1 className="text-title font-semibold text-ink">Evidence</h1>
-        <p className="mt-0.5 max-w-3xl text-meta leading-relaxed text-ink-faint">
-          {metrics.note}
-        </p>
+        <h1 className="text-heading font-semibold text-ink">Evidence</h1>
+        <p className="mt-1 max-w-3xl text-meta leading-relaxed text-ink-faint">{metrics.note}</p>
       </div>
 
-      {/* The result the whole submission rests on. */}
+      {/* Headline figures first. Everything below is the working behind them. */}
+      <StatStrip columns={5}>
+        <Card>
+          <Stat label="Recall, frozen" value={pct1(detection?.recall)} tone="bad" size="tabular"
+            note="on unseen captures" />
+        </Card>
+        <Card>
+          <Stat label={`After ${loop?.headline_label_budget ?? 500} verdicts`}
+            value={pct1(campaign?.at_headline_budget?.recall)} tone="good" size="tabular"
+            note="same held-out data" />
+        </Card>
+        <Card>
+          <Stat label="False alarms" value={pct(detection?.false_positive_rate)} size="tabular"
+            note="frozen model" />
+        </Card>
+        <Card>
+          <Stat label="ATT&CK top-1" value={pct1(attribution?.top1_accuracy)} size="tabular"
+            note={`vs ${pct1(attribution?.majority_class_baseline)} baseline`} />
+        </Card>
+        <Card>
+          <Stat label="Playbook automated" size="tabular"
+            value={automation?.coverage_pct != null ? `${automation.coverage_pct}%` : '—'}
+            note={automation?.available === false ? 'run a playbook first' : 'of all steps'} />
+        </Card>
+      </StatStrip>
+
       {loop?.available && (
-        <Card
-          title="Learning from analyst verdicts"
-          hint={loop.question}
-          aside={<Provenance kind="measured" />}
-        >
+        <Card title="Learning from analyst verdicts" hint={loop.question}
+          aside={<Provenance kind="measured" />} tint="accent">
           <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
             {loop.settings.map((setting) => {
               const improved = setting.delta_at_headline.recall > 0.01
               return (
-                <div key={setting.setting} className="rounded-md border border-line bg-surface-0 p-4">
+                <div key={setting.setting} className="rounded-lg border border-line bg-surface-0/60 p-4">
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="text-body font-medium text-ink">
                       {setting.setting === 'campaign_assisted'
@@ -52,57 +75,49 @@ export default function Evidence() {
                     </span>
                   </div>
 
-                  <div className="mt-3 flex items-end gap-6">
-                    <Stat label="Recall before" value={pct1(setting.before.recall)} size="figure" tone="muted" />
-                    <span className="pb-1 text-ink-faint">→</span>
-                    <Stat
-                      label={`After ${loop.headline_label_budget} verdicts`}
-                      value={pct1(setting.at_headline_budget.recall)}
-                      tone={improved ? 'good' : 'muted'}
-                    />
-                    <Stat
-                      label="FPR cost"
-                      value={`${(setting.before.false_positive_rate * 100).toFixed(2)}% → ${(setting.at_headline_budget.false_positive_rate * 100).toFixed(2)}%`}
-                      size="figure"
-                    />
+                  <div className="mt-3 flex flex-wrap items-end gap-6">
+                    <Stat label="Before" value={pct1(setting.before.recall)} size="tabular" tone="muted" />
+                    <span className="pb-2 text-ink-faint">→</span>
+                    <Stat label="After" value={pct1(setting.at_headline_budget.recall)}
+                      size="tabular" tone={improved ? 'good' : 'muted'} />
+                    <Stat label="False alarms" size="tabular"
+                      value={`${(setting.at_headline_budget.false_positive_rate * 100).toFixed(2)}%`} />
                   </div>
 
-                  <ResponsiveContainer width="100%" height={140}>
-                    <LineChart data={setting.learning_curve} margin={{ top: 12, left: -24, right: 6 }}>
-                      <CartesianGrid strokeDasharray="2 4" stroke={GRID} vertical={false} />
-                      <XAxis dataKey="labels" tick={AXIS}
-                        axisLine={false} tickLine={false} />
-                      <YAxis domain={[0, 1]} tick={AXIS}
-                        axisLine={false} tickLine={false} tickFormatter={(v) => `${v * 100}%`} />
-                      <Tooltip contentStyle={CHART_TOOLTIP}
-                        formatter={(v, n) => [`${(v * 100).toFixed(1)}%`, n]} />
-                      <Legend wrapperStyle={{ fontSize: 11, color: '#697384' }} />
-                      <Line type="monotone" dataKey="recall" stroke="#3fb47f" strokeWidth={2}
-                        dot={false} name="recall" />
-                      <Line type="monotone" dataKey="false_positive_rate" stroke="#f0616a"
-                        strokeWidth={1.5} dot={false} name="false positives" />
+                  <ResponsiveContainer width="100%" height={150}>
+                    <LineChart data={setting.learning_curve} margin={{ top: 14, left: -22, right: 6 }}>
+                      <CartesianGrid strokeDasharray="2 5" stroke={GRID} vertical={false} />
+                      <XAxis dataKey="labels" tick={AXIS} axisLine={false} tickLine={false} />
+                      <YAxis domain={[0, 1]} tick={AXIS} axisLine={false} tickLine={false}
+                        tickFormatter={(v) => `${v * 100}%`} />
+                      <Tooltip {...TOOLTIP}
+                        formatter={(v, n) => [`${(v * 100).toFixed(1)}%`, n]}
+                        labelFormatter={(v) => `${v} verdicts`} />
+                      <Legend wrapperStyle={{ fontSize: 11, color: SERIES.muted }} />
+                      <Line type="monotone" dataKey="recall" stroke={SERIES.good} strokeWidth={2}
+                        dot={false} name="attacks caught" />
+                      <Line type="monotone" dataKey="false_positive_rate" stroke={SERIES.bad}
+                        strokeWidth={1.5} dot={false} name="false alarms" />
                     </LineChart>
                   </ResponsiveContainer>
 
-                  <p className="text-meta leading-relaxed text-ink-faint">
-                    {setting.description}
-                  </p>
+                  <Note>{setting.description}</Note>
                 </div>
               )
             })}
           </div>
 
-          <div className="mt-4 border-t border-line/60 pt-3">
-            <h4 className="text-[12px] font-medium text-ink">What was tried first</h4>
+          <div className="mt-4 border-t border-line pt-3.5">
+            <h4 className="text-body font-medium text-ink">What was tried first</h4>
             <div className="mt-1.5 space-y-1">
               {loop.engineering_log.map((entry) => (
                 <div key={entry.attempt} className="text-meta leading-relaxed text-ink-faint">
-                  <span className="font-mono tabular text-ink-muted">{entry.attempt}</span> — {entry.result}
-                  <span className="text-ink-faint"> ({entry.why})</span>
+                  <span className="font-mono text-ink-muted">{entry.attempt}</span> — {entry.result}
+                  <span> ({entry.why})</span>
                 </div>
               ))}
             </div>
-            <p className="mt-2 text-meta leading-relaxed text-ink-faint">
+            <p className="mt-2.5 text-meta leading-relaxed text-ink-faint">
               <span className="text-ink-muted">Why not reinforcement learning: </span>
               {loop.why_not_reinforcement_learning}
             </p>
@@ -110,43 +125,41 @@ export default function Evidence() {
         </Card>
       )}
 
-      <Card
-        title="Detector on unseen captures"
-        hint={detection.available ? detection.why_this_split : undefined}
-        aside={<Provenance kind="measured" />}
-      >
-        {!detection.available ? <Empty title="Not evaluated yet">{detection.reason}</Empty> : (
+      <Card title="Detector on unseen captures" hint={detection?.why_this_split}
+        aside={<Provenance kind="measured" />}>
+        {!detection?.available ? <Empty title="Not evaluated yet">{detection?.reason}</Empty> : (
           <>
-            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
-              <Stat label="Precision" value={pct(detection.precision)} />
-              <Stat label="Recall" value={pct(detection.recall)} tone="bad" />
-              <Stat label="F1" value={pct(detection.f1)} />
-              <Stat label="False positive rate" value={pct(detection.false_positive_rate)} tone="good" />
-              <Stat label="False negative rate" value={pct(detection.false_negative_rate)} tone="bad" />
-              <Stat label="ROC AUC" value={detection.roc_auc?.toFixed(4)} />
-            </div>
+            <StatStrip columns={6}>
+              <Stat label="Precision" value={pct(detection.precision)} size="tabular" />
+              <Stat label="Recall" value={pct(detection.recall)} tone="bad" size="tabular" />
+              <Stat label="F1" value={pct(detection.f1)} size="tabular" />
+              <Stat label="False positives" value={pct(detection.false_positive_rate)} tone="good" size="tabular" />
+              <Stat label="False negatives" value={pct(detection.false_negative_rate)} tone="bad" size="tabular" />
+              <Stat label="ROC AUC" value={detection.roc_auc?.toFixed(4)} size="tabular" />
+            </StatStrip>
 
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">
               <div>
-                <h4 className="mb-1.5 text-[12px] font-medium text-ink">
+                <h4 className="mb-2 text-body font-medium text-ink">
                   How hard is this benchmark, really?
                 </h4>
                 {Object.entries(detection.trivial_baselines || {}).map(([name, stat]) => (
                   <DataRow key={name} label={name.replace(/_/g, ' ')}>F1 {stat.f1?.toFixed(4)}</DataRow>
                 ))}
-                <DataRow label="this model">F1 {detection.f1?.toFixed(4)}</DataRow>
-                <p className="mt-2 text-meta leading-relaxed text-ink-faint">
-                  A depth-6 tree is close behind. The forest is not the interesting part of this
-                  project — what happens after deployment is.
-                </p>
+                <DataRow label="this model" tone="good">F1 {detection.f1?.toFixed(4)}</DataRow>
+                <Note>
+                  A six-level decision tree comes close. The classifier is not the interesting
+                  part of this project — what happens to it after deployment is.
+                </Note>
               </div>
 
               <div>
-                <h4 className="mb-1.5 text-[12px] font-medium text-ink">Per-family recall</h4>
-                <div className="max-h-[220px] overflow-y-auto pr-1">
+                <h4 className="mb-2 text-body font-medium text-ink">Per-family recall</h4>
+                <div className="max-h-[230px] overflow-y-auto pr-1">
                   {Object.entries(detection.per_family_detection_rate || {}).map(([name, stat]) => (
-                    <DataRow key={name} label={`${name} (n=${stat.n.toLocaleString()})`}>
-                      <span className={stat.rate < 0.5 ? 'text-bad' : stat.rate < 0.9 ? 'text-severity-high' : 'text-good'}>
+                    <DataRow key={name} label={`${name} · n=${stat.n.toLocaleString()}`}>
+                      <span className={stat.rate < 0.5 ? 'text-bad'
+                        : stat.rate < 0.9 ? 'text-severity-high' : 'text-good'}>
                         {pct1(stat.rate)}
                       </span>
                     </DataRow>
@@ -155,86 +168,84 @@ export default function Evidence() {
               </div>
             </div>
 
-            <div className="mt-4 border-t border-line/60 pt-3">
+            <div className="mt-4 border-t border-line pt-3.5">
               <DataRow label="superseded random-split recall">
                 {pct1(detection.superseded_random_split?.recall)}
               </DataRow>
-              <p className="mt-1.5 text-meta leading-relaxed text-ink-faint">
-                {detection.superseded_random_split?.note}
-              </p>
+              <Note>{detection.superseded_random_split?.note}</Note>
             </div>
           </>
         )}
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card title="ATT&CK technique attribution" actions={<Provenance kind="measured" />}
-          hint={attribution.available ? attribution.method : undefined}>
-          {!attribution.available ? <Empty title="Not evaluated yet">{attribution.reason}</Empty> : (
+        <Card title="ATT&CK technique attribution" aside={<Provenance kind="measured" />}
+          hint={attribution?.method}>
+          {!attribution?.available ? <Empty title="Not evaluated yet">{attribution?.reason}</Empty> : (
             <>
-              <div className="grid grid-cols-3 gap-4">
-                <Stat label="Top-1" value={pct1(attribution.top1_accuracy)} />
-                <Stat label="Top-3" value={pct1(attribution.top3_accuracy)} />
+              <StatStrip columns={3}>
+                <Stat label="Top-1" value={pct1(attribution.top1_accuracy)} size="tabular" />
+                <Stat label="Top-3" value={pct1(attribution.top3_accuracy)} size="tabular" />
                 <Stat label="Baseline" value={pct1(attribution.majority_class_baseline)}
-                  tone="muted" note="majority class" />
-              </div>
-              <p className="mt-3 text-meta leading-relaxed text-ink-faint">
-                {attribution.samples} samples over {attribution.techniques_evaluated} techniques.
-                At this sample size the 95% interval on top-1 is roughly ±11 points, so treat it
-                as "about half", not 54.1%.
-              </p>
+                  tone="muted" size="tabular" note="majority class" />
+              </StatStrip>
+              <Note>
+                {attribution.samples} samples across {attribution.techniques_evaluated} techniques.
+                At that size the 95% interval on top-1 is roughly ±11 points, so read it as
+                "about half", not to the decimal.
+              </Note>
             </>
           )}
         </Card>
 
-        <Card title="Cross-plane fusion" actions={<Provenance kind="measured" />}
-          hint={fusion?.available ? fusion.question : undefined}>
+        <Card title="Cross-plane correlation" aside={<Provenance kind="measured" />}
+          hint={fusion?.question}>
           {!fusion?.available ? <Empty title="Not evaluated yet">{fusion?.reason}</Empty> : (
-            <div className="grid grid-cols-2 gap-4">
+            <StatStrip columns={4}>
               <Stat label="Attacks recovered" value={fusion.with_fusion.true_attacks_recovered}
-                tone="good" note="invisible to the detector alone" />
+                tone="good" size="tabular" />
               <Stat label="Benign promoted" value={fusion.with_fusion.benign_flows_promoted}
-                tone="bad" note="the cost" />
-              <Stat label="Fusion-only incidents" value={fusion.with_fusion.fusion_only_incidents} size="figure" />
-              <Stat label="Weak-band attacks" value={fusion.weak_band.genuine_attacks} size="figure"
+                tone="bad" size="tabular" note="the cost" />
+              <Stat label="Fusion-only" value={fusion.with_fusion.fusion_only_incidents} size="tabular" />
+              <Stat label="Weak band" value={fusion.weak_band.genuine_attacks} size="tabular"
                 note={`score ${fusion.weak_band.range[0]}–${fusion.weak_band.range[1]}`} />
-            </div>
+            </StatStrip>
           )}
         </Card>
 
-        <Card title="Detection latency" actions={<Provenance kind="measured" />}
-          hint={latency?.label}>
-          <div className="grid grid-cols-3 gap-4">
-            <Stat label="p50" value={latency?.p50_ms != null ? `${latency.p50_ms} ms` : '—'} />
-            <Stat label="p95" value={latency?.p95_ms != null ? `${latency.p95_ms} ms` : '—'} />
-            <Stat label="Batched" value={latency?.batch_ms_per_event != null ? `${latency.batch_ms_per_event} ms` : '—'}
-              size="figure" note="per event" />
-          </div>
+        <Card title="Detection latency" aside={<Provenance kind="measured" />} hint={latency?.label}>
+          <StatStrip columns={3}>
+            <Stat label="p50" value={latency?.p50_ms != null ? `${latency.p50_ms} ms` : '—'} size="tabular" />
+            <Stat label="p95" value={latency?.p95_ms != null ? `${latency.p95_ms} ms` : '—'} size="tabular" />
+            <Stat label="Batched" size="tabular"
+              value={latency?.batch_ms_per_event != null ? `${latency.batch_ms_per_event} ms` : '—'}
+              note="per event" />
+          </StatStrip>
         </Card>
 
-        <Card title="Response automation coverage" actions={<Provenance kind="measured" />}
+        <Card title="Response automation" aside={<Provenance kind="measured" />}
           hint={automation?.definition}>
           {automation?.available === false ? (
             <Empty title="No playbook run yet">{automation.reason}</Empty>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
-              <Stat label="Coverage" value={`${automation.coverage_pct}%`} />
-              <Stat label="Playbook steps" value={automation.playbook_steps} size="figure" />
-              <Stat label="Ran autonomously" value={automation.executed_autonomously} size="figure" />
-              <Stat label="Held for a human" value={automation.held_for_human_approval} size="figure"
-                note="blast-radius gate" />
-            </div>
+            <StatStrip columns={4}>
+              <Stat label="Coverage" value={`${automation.coverage_pct}%`} size="tabular" />
+              <Stat label="Steps" value={automation.playbook_steps} size="tabular" />
+              <Stat label="Autonomous" value={automation.executed_autonomously} tone="good" size="tabular" />
+              <Stat label="Gated" value={automation.held_for_human_approval}
+                tone="muted" size="tabular" note="blast radius" />
+            </StatStrip>
           )}
         </Card>
       </div>
 
-      <Card title="Comparison baseline" actions={<Provenance kind="cited" />} subtitle={baseline?.source}>
-        <div className="flex flex-wrap items-center gap-6">
+      <Card title="Comparison baseline" aside={<Provenance kind="cited" />} hint={baseline?.source}>
+        <div className="flex flex-wrap items-center gap-8">
           <Stat label={baseline?.label} value={`${baseline?.value_days} days`} tone="muted" />
           <p className="max-w-xl text-meta leading-relaxed text-ink-faint">
-            Context only. This is not comparable to the millisecond tabular above — one is an
-            industry dwell-time median, the other is how long this pipeline takes to score a flow.
-            Putting them on the same axis would be the trick we removed from this project.
+            Context only, and not comparable to the millisecond figure above — one is an
+            industry dwell-time median, the other is how long this pipeline takes to score a
+            single flow. Putting them on one axis is the trick this project removed.
           </p>
         </div>
       </Card>

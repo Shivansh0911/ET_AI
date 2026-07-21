@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps'
 import { MapPin } from 'lucide-react'
 import india from '../data/india.topo.json'
-import { Card, Severity, Mono, Provenance, Empty } from './ui'
+import { Card, Severity, Mono, Empty, MAP, severityHex } from './ui'
 
 // State boundaries from a 37 KB TopoJSON bundled with the app — no network call at render time,
 // which matters when the demo runs on venue wifi. Sites are placed by real lat/lng and sized by
@@ -39,9 +39,8 @@ export default function ThreatMap({ locations = [], detections = [] }) {
     <Card
       title="Monitored sites"
       hint="Detection volume by location. Select a site to see what fired there."
-      aside={<Provenance kind="illustrative" />}
     >
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+      <div className="space-y-4">
         <div className="relative">
           <ComposableMap
             projection="geoMercator"
@@ -57,9 +56,9 @@ export default function ThreatMap({ locations = [], detections = [] }) {
                     key={geo.rsmKey}
                     geography={geo}
                     style={{
-                      default: { fill: '#161d29', stroke: '#232c3b', strokeWidth: 0.5, outline: 'none' },
-                      hover: { fill: '#1b2431', stroke: '#2f3a4c', strokeWidth: 0.5, outline: 'none' },
-                      pressed: { fill: '#1b2431', outline: 'none' },
+                      default: { fill: MAP.land, stroke: MAP.border, strokeWidth: 0.5, outline: 'none' },
+                      hover: { fill: MAP.landHover, stroke: MAP.borderHover, strokeWidth: 0.5, outline: 'none' },
+                      pressed: { fill: MAP.landHover, outline: 'none' },
                     }}
                   />
                 ))
@@ -68,8 +67,8 @@ export default function ThreatMap({ locations = [], detections = [] }) {
 
             {sites.map((site) => {
               const isSelected = selected?.city === site.city
-              const colour = site.tone === 'critical' ? '#f0616a'
-                : site.tone === 'high' ? '#f08a3c' : '#6d8cf5'
+              const colour = site.tone === 'critical' ? severityHex('critical')
+                : site.tone === 'high' ? severityHex('high') : MAP.nominal
               return (
                 <Marker
                   key={site.city}
@@ -79,11 +78,11 @@ export default function ThreatMap({ locations = [], detections = [] }) {
                 >
                   <circle r={site.radius + 5} fill={colour} opacity={isSelected ? 0.22 : 0.1} />
                   <circle r={site.radius} fill={colour} fillOpacity={0.85}
-                    stroke={isSelected ? '#e8ecf2' : colour} strokeWidth={isSelected ? 1.5 : 0} />
+                    stroke={isSelected ? MAP.label : colour} strokeWidth={isSelected ? 1.5 : 0} />
                   <text
                     textAnchor="middle"
                     y={-site.radius - 7}
-                    style={{ fill: isSelected ? '#e8ecf2' : '#9aa5b6', fontSize: 10,
+                    style={{ fill: isSelected ? MAP.label : MAP.labelMuted, fontSize: 10,
                       fontFamily: 'Inter, sans-serif', pointerEvents: 'none' }}
                   >
                     {site.city}
@@ -107,7 +106,7 @@ export default function ThreatMap({ locations = [], detections = [] }) {
           </div>
         </div>
 
-        <div className="border-line lg:border-l lg:pl-5">
+        <div className="border-t border-line pt-4">
           {!selected ? (
             <div className="space-y-2">
               <div className="text-label uppercase text-ink-faint">All sites</div>
