@@ -7,11 +7,11 @@ time, or explicitly labelled as a cited reference. There are no hardcoded result
 """
 import os
 import time
-from typing import List, Optional
+from typing import List, Literal, Optional
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from agents.anomaly_detector import analyze_compound_threat, detect_anomalies, detector_status
 from agents.attack_mapper import build_kill_chain, predict_next_move
@@ -93,23 +93,25 @@ def _cached(key: str, produce):
     return value
 
 
+# Every field is bounded. Unbounded text here is a free-tier quota exhaustion vector: one
+# request with a 200,000-character message used to be forwarded to Groq verbatim.
 class CopilotRequest(BaseModel):
-    message: str
-    context: Optional[List[dict]] = []
+    message: str = Field(min_length=1, max_length=2000)
+    context: Optional[List[dict]] = Field(default=[], max_length=20)
 
 
 class ThreatIntelRequest(BaseModel):
-    query: str
+    query: str = Field(min_length=2, max_length=300)
 
 
 class RespondRequest(BaseModel):
-    alert_id: Optional[str] = "latest"
+    alert_id: Optional[str] = Field(default="latest", max_length=64)
 
 
 class FeedbackRequest(BaseModel):
-    alert_id: str
-    verdict: str          # "confirm" or "dismiss"
-    analyst: Optional[str] = "soc-analyst"
+    alert_id: str = Field(min_length=1, max_length=64)
+    verdict: Literal["confirm", "dismiss"]
+    analyst: Optional[str] = Field(default="soc-analyst", max_length=64)
 
 
 # ─── ENDPOINTS ───
@@ -171,9 +173,6 @@ def submit_feedback(req: FeedbackRequest):
     not report its own accuracy: the analyst chooses what to label, so there is no held-out set
     to score against.
     """
-    if req.verdict not in ("confirm", "dismiss"):
-        raise HTTPException(status_code=422, detail="verdict must be 'confirm' or 'dismiss'")
-
     known = _vector_index.get(req.alert_id)
     if known is None:
         raise HTTPException(status_code=404, detail=f"unknown alert id: {req.alert_id}")
@@ -230,7 +229,7 @@ def get_incidents():
 
 
 @app.get("/api/attribution")
-def get_attribution(limit: int = 12):
+def get_attribution(limit: int = Query(12, ge=1, le=40)):
     """Technique attribution on real ATT&CK-labelled captures — predictions and misses.
 
     Deliberately shows the ground truth next to the prediction. The model is right about
@@ -264,7 +263,7 @@ def get_attribution(limit: int = 12):
 
 
 @app.get("/api/events")
-def get_events(limit: int = 50):
+def get_events(limit: int = Query(50, ge=1, le=1000)):
     return {"events": _stream["events"][:limit], "total": len(_stream["events"]),
             "source": _stream["source"], "provenance": PROVENANCE}
 
@@ -309,7 +308,7 @@ def generate_response(req: RespondRequest):
 
 
 @app.get("/api/audit")
-def get_audit(limit: int = 100):
+def get_audit(limit: int = Query(100, ge=1, le=500)):
     """Every automated action taken, newest last, with the chain's integrity state."""
     return {"entries": ledger.entries(limit), "verification": ledger.verify(),
             "stats": ledger.stats()}
@@ -329,7 +328,8 @@ def simulate_tamper():
 
 @app.post("/api/copilot")
 def copilot_chat(req: CopilotRequest):
-    return {"response": chat_with_copilot(req.message, req.context, _detections)}
+    """Guarded assistant. Refusals and neutralised injections are written to the ledger."""
+    return chat_with_copilot(req.message, req.context, _detections)
 
 
 @app.post("/api/refresh")
