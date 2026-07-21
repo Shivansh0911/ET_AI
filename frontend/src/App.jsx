@@ -1,16 +1,22 @@
 import { useState } from 'react'
-import { Shield, LayoutDashboard, Map, Link2, ClipboardList, MessageSquare } from 'lucide-react'
+import { Shield, LayoutDashboard, Map, Link2, ClipboardList, MessageSquare, GitMerge, FlaskConical, ScrollText } from 'lucide-react'
 import Dashboard from './components/Dashboard'
 import ThreatMap from './components/ThreatMap'
 import AttackChain from './components/AttackChain'
+import Incidents from './components/Incidents'
+import Evidence from './components/Evidence'
+import AuditLedger from './components/AuditLedger'
 import ResponsePanel from './components/ResponsePanel'
 import CopilotChat from './components/CopilotChat'
 
 const TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'map', label: 'Threat Map', icon: Map },
+  { id: 'incidents', label: 'Incidents', icon: GitMerge },
   { id: 'killchain', label: 'Kill Chain', icon: Link2 },
+  { id: 'evidence', label: 'Evidence', icon: FlaskConical },
   { id: 'response', label: 'Response', icon: ClipboardList },
+  { id: 'audit', label: 'Audit', icon: ScrollText },
   { id: 'copilot', label: 'Copilot', icon: MessageSquare },
 ]
 
@@ -50,8 +56,11 @@ export default function App() {
       <main className="p-6 max-w-7xl mx-auto">
         {tab === 'dashboard' && <Dashboard />}
         {tab === 'map' && <ThreatMap />}
+        {tab === 'incidents' && <Incidents />}
         {tab === 'killchain' && <AttackChain />}
+        {tab === 'evidence' && <Evidence />}
         {tab === 'response' && <ResponsePanel />}
+        {tab === 'audit' && <AuditLedger />}
         {tab === 'copilot' && <CopilotChat />}
       </main>
     </div>

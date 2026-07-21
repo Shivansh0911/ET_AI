@@ -1,4 +1,15 @@
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
+// In production VITE_API_URL is baked in at build time by Vite. Falling back to localhost
+// silently is how a deployed site ends up calling a machine that is not there, so the
+// fallback is announced loudly in the console and surfaced via api.baseUrl for the UI.
+const CONFIGURED = import.meta.env.VITE_API_URL
+const BASE_URL = CONFIGURED || 'http://localhost:8000'
+
+if (!CONFIGURED && import.meta.env.PROD) {
+  console.error(
+    'VITE_API_URL is not set. This production build will call http://localhost:8000 and fail. ' +
+    'Set VITE_API_URL to the backend origin and redeploy — Vite bakes env vars in at build time.'
+  )
+}
 
 async function request(path, options = {}) {
   try {
@@ -15,11 +26,21 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  baseUrl: BASE_URL,
+  isConfigured: Boolean(CONFIGURED),
+
   getDashboard: () => request('/api/dashboard'),
   getEvents: (limit = 50) => request(`/api/events?limit=${limit}`),
   getAnomalies: () => request('/api/anomalies'),
   getKillChain: () => request('/api/kill-chain'),
   getCompoundAnalysis: () => request('/api/compound-analysis'),
+  getMetrics: () => request('/api/metrics'),
+  getIncidents: () => request('/api/incidents'),
+  getAttribution: (limit = 12) => request(`/api/attribution?limit=${limit}`),
+  getAudit: (limit = 100) => request(`/api/audit?limit=${limit}`),
+  verifyAudit: () => request('/api/audit/verify'),
+  simulateTamper: () => request('/api/audit/simulate-tamper', { method: 'POST' }),
+
   searchThreatIntel: (query) =>
     request('/api/threat-intel', { method: 'POST', body: JSON.stringify({ query }) }),
   generatePlaybook: (alertId = 'latest') =>

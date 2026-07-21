@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PlayCircle, CheckCircle2, AlertTriangle, Clock } from 'lucide-react'
+import { PlayCircle, CheckCircle2, AlertTriangle, Clock, ShieldQuestion } from 'lucide-react'
 import { api } from '../utils/api'
 import SeverityBadge from './SeverityBadge'
 
@@ -77,16 +77,46 @@ export default function ResponsePanel() {
 
           <div className="space-y-4">
             <div className="bg-card border border-gray-800 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-gray-400 mb-2">Automated Actions</h3>
+              <h3 className="text-sm font-semibold text-gray-400 mb-1">Executed Actions</h3>
+              <p className="text-[11px] text-gray-600 mb-2 leading-relaxed">
+                Each one recorded in the audit chain. Simulated — no production estate attached.
+              </p>
               <ul className="space-y-2">
-                {(playbook.automated_actions || []).map((action, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-emerald-400">
-                    <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
-                    {action}
-                  </li>
-                ))}
+                {(playbook.execution?.executed || []).map((action, i) => {
+                  const held = action.status !== 'executed'
+                  const Icon = held ? ShieldQuestion : CheckCircle2
+                  return (
+                    <li key={i} className={`flex items-start gap-2 text-sm ${
+                      held ? 'text-amber-400' : 'text-emerald-400'
+                    }`}>
+                      <Icon size={14} className="mt-0.5 shrink-0" />
+                      <span>
+                        <span className="mono">{action.action}</span>
+                        <span className="text-gray-500"> · blast {action.blast_radius} · #{action.ledger_seq}</span>
+                        {held && <div className="text-[11px] text-amber-500/80">held for approval — {action.gate}</div>}
+                      </span>
+                    </li>
+                  )
+                })}
               </ul>
             </div>
+
+            {playbook.execution?.coverage && (
+              <div className="bg-card border border-gray-800 rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-gray-400 mb-2">Automation Coverage</h3>
+                <div className="text-2xl font-bold mono text-emerald-400">
+                  {playbook.execution.coverage.coverage_pct}%
+                </div>
+                <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                  <div>{playbook.execution.coverage.executed_autonomously} executed autonomously</div>
+                  <div>{playbook.execution.coverage.held_for_human_approval} held for a human</div>
+                  <div>{playbook.execution.coverage.manual_only} with no automated form</div>
+                </div>
+                <p className="text-[11px] text-gray-600 mt-2 leading-relaxed">
+                  {playbook.execution.coverage.definition}
+                </p>
+              </div>
+            )}
 
             <div className="bg-card border border-gray-800 rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -98,6 +128,9 @@ export default function ResponsePanel() {
                   <AlertTriangle size={14} />
                   Escalation Required
                 </div>
+              )}
+              {playbook.note && (
+                <p className="text-[11px] text-gray-600 leading-relaxed">{playbook.note}</p>
               )}
             </div>
           </div>

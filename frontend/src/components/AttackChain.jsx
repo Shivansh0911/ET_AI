@@ -6,6 +6,7 @@ import SeverityBadge from './SeverityBadge'
 export default function AttackChain() {
   const [chain, setChain] = useState([])
   const [prediction, setPrediction] = useState('')
+  const [table, setTable] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [selected, setSelected] = useState(null)
@@ -15,6 +16,7 @@ export default function AttackChain() {
       .then((res) => {
         setChain(res.kill_chain || [])
         setPrediction(res.next_move_prediction || '')
+        setTable(res.attack_table || null)
       })
       .catch(() => setError('Unable to load kill chain data.'))
       .finally(() => setLoading(false))
@@ -25,7 +27,16 @@ export default function AttackChain() {
 
   return (
     <div>
-      <h2 className="text-lg font-semibold text-gray-200 mb-4">MITRE ATT&amp;CK Kill Chain</h2>
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-gray-200">MITRE ATT&amp;CK Kill Chain</h2>
+        {table && (
+          <p className="text-xs text-gray-500 mt-1">
+            {table.technique_count.toLocaleString()} techniques from {table.source} — {table.provenance}.
+            Stages are anchored on the earliest detection per tactic, so the progression reads
+            forward in time.
+          </p>
+        )}
+      </div>
 
       {chain.length === 0 ? (
         <div className="bg-card border border-gray-800 rounded-xl p-8 text-center text-gray-500">
@@ -60,7 +71,12 @@ export default function AttackChain() {
         <div className="bg-card border border-gray-800 rounded-xl p-4 mb-4">
           <h3 className="text-sm font-semibold text-gray-400 mb-1">Stage Detail</h3>
           <p className="text-sm text-gray-300">{selected.event}</p>
-          <p className="text-xs text-gray-500 mt-1 mono">Asset: {selected.asset}</p>
+          <p className="text-xs text-gray-500 mt-1 mono">
+            Asset: {selected.asset} · {selected.detections} detection(s) · peak score {selected.max_score}
+          </p>
+          <p className="text-xs text-gray-600 mt-0.5 mono">
+            First seen {selected.first_seen} · last seen {selected.last_seen}
+          </p>
         </div>
       )}
 

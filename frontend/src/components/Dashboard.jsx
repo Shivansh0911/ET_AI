@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, BarChart, Bar, XAxis
 import { RefreshCw, Sparkles } from 'lucide-react'
 import MetricsBar from './MetricsBar'
 import AnomalyFeed from './AnomalyFeed'
+import { ProvenanceBanner } from './Provenance'
 import { api } from '../utils/api'
 import { severityColor } from './SeverityBadge'
 
@@ -84,6 +85,8 @@ export default function Dashboard() {
           Refresh Intel
         </button>
       </div>
+
+      <ProvenanceBanner provenance={dashboard.data_provenance} source={dashboard.stream_source} />
 
       <MetricsBar dashboard={dashboard} />
 
