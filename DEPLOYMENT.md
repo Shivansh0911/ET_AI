@@ -105,7 +105,7 @@ Free hosts for a small FastAPI service that needs to "always work" during a hack
 
 5. Click **Deploy site**. Netlify builds and gives you a URL like `https://random-name-123.netlify.app` (renameable under **Site configuration → Change site name**).
 6. **If you set the environment variable after the first deploy**, trigger a redeploy: **Deploys** tab → **Trigger deploy** → **Deploy site** (env vars are baked in at build time by Vite, so a rebuild is required for the change to take effect).
-7. Open the Netlify URL and click through all 8 tabs to confirm it's talking to the live backend. The Dashboard should populate rather than showing "Unable to load dashboard data", and the **Evidence** tab should show the measured benchmark figures.
+7. Open the Netlify URL and click through the six tabs to confirm it is talking to the live backend. Overview should populate rather than erroring, and **Evidence** should show the learning curves.
 
 ---
 
@@ -115,7 +115,45 @@ Free hosts for a small FastAPI service that needs to "always work" during a hack
 - [ ] UptimeRobot monitor is **active** (not paused)
 - [ ] Netlify site loads and Dashboard shows real data (not an error banner)
 - [ ] `/` shows `"detector": {"available": true}` — the model artifact loaded
-- [ ] Evidence tab shows measured precision/recall, not "metrics unavailable"
-- [ ] Response tab generates a playbook, then Audit tab shows the chain intact with entries
+- [ ] Evidence tab shows both learning curves, not "metrics unavailable"
+- [ ] Overview: confirm/dismiss a few alerts, watch "Analyst verdicts" rise and the loop activate at 12
+- [ ] Response tab drafts a playbook, then Audit shows the chain intact — click **Simulate tampering** once so you know the animation works before you do it on stage
+- [ ] Copilot bubble opens from any tab and answers "what detections are active?"
 - [ ] Copilot tab returns a real answer (proves `GROQ_API_KEY` is set correctly on Render)
 - [ ] Open the Netlify URL once ~10 minutes before you go on stage/submit, just in case the very first Render request after a long gap is slow
+
+
+---
+
+## Demo runbook
+
+Ninety seconds, in this order. It is built around the one thing no other submission can show.
+
+1. **Overview.** Point at *Recall this window*. It will read somewhere near 12–20%.
+   Say: *"This model has never seen these capture days. It is catching about one attack in six."*
+2. **Triage queue.** Click *Real* on four or five genuine detections and *False* on a few benign
+   ones. At twelve verdicts the *Analyst verdicts* tile turns blue and names a model version.
+3. **Watch the recall tile move.** It jumps — typically past 90%. Nothing was reloaded; the
+   detector refitted on your clicks.
+4. **Evidence tab.** Two learning curves. The left one is what you just did, measured properly on
+   a held-out set: 36.7% → 98.8% for 500 verdicts. The right one is flat, and say so out loud:
+   *"Feedback from one campaign does not transfer to a different one. Novel families still need
+   their own labels. That is the limit of the method and we measured it."*
+5. **Audit tab → Simulate tampering.** The badge goes red and names the entry that broke.
+6. **Copilot bubble.** Ask *"what is the model missing right now?"* Then ask it to write malware —
+   it refuses, and the refusal appears in the audit ledger.
+
+If Groq is rate-limited, everything except steps 6 and the compound-analysis panel still works.
+Detection, learning, metrics and the audit chain need no LLM at all.
+
+## Resource notes
+
+- Measured footprint: **234 MB RSS** with both models loaded, against Render's 512 MB free tier.
+- Artifacts: `base_detector.joblib` 1.3 MB, `adaptive_detector.joblib` 0.2 MB,
+  `attributor.joblib` 0.5 MB. All committed, all loaded lazily on first request.
+- `requirements.txt` includes scikit-learn, numpy and joblib, so the first Render build is slower
+  than it used to be. Training dependencies live in `requirements-ml.txt` and are not installed
+  on the server.
+- The audit ledger and analyst feedback are JSONL files on an ephemeral disk. They reset when the
+  dyno restarts. That is a hosting choice, not a design limit, and the API says so in its
+  response rather than quietly losing history.

@@ -18,7 +18,7 @@ from agents.attack_mapper import build_kill_chain, predict_next_move
 from agents.copilot import chat_with_copilot
 from agents.response_orchestrator import generate_playbook
 from agents.threat_intel import search_threat_intel
-from engine import attribution, feedback, fusion, ledger, replay
+from engine import attribution, feedback, fusion, ingest, ledger, replay
 from engine.assets import ASSETS, PROVENANCE
 from engine.metrics_registry import attribution as attribution_metrics
 from engine.metrics_registry import continual as metrics_continual
@@ -205,6 +205,15 @@ def feedback_reset():
     state = feedback.reset()
     _rescore()
     return {"state": state, "stream": {"detections": len(_detections)}}
+
+
+@app.get("/api/ingest/coverage")
+def ingest_coverage():
+    """How much of the model's feature space a real Zeek conn.log can actually fill.
+
+    The honest answer to "could you deploy this?" — a number rather than a shrug.
+    """
+    return ingest.coverage()
 
 
 @app.get("/api/incidents")

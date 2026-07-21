@@ -195,3 +195,33 @@ def test_detector_serves_the_versioned_cross_capture_model(client):
 def test_stream_is_drawn_from_unseen_capture_days(client):
     source = client.get("/api/events?limit=1").json()["source"]
     assert "Thursday" in source and "Friday" in source
+
+
+# ─── ingestion adapter ───
+
+def test_zeek_adapter_reports_honest_coverage(client):
+    """The deployability claim is a number, and it must not quietly become 100%."""
+    coverage = client.get("/api/ingest/coverage").json()
+    assert coverage["available"]
+    assert coverage["direct"] + coverage["approximated"] + coverage["unavailable"] ==         coverage["model_features"]
+    assert 0 < coverage["coverage_pct"] < 100,         "conn.log cannot fill the whole feature space; claiming otherwise would be false"
+    assert coverage["unavailable_fields"], "the gap must be enumerated, not hidden"
+
+
+def test_zeek_records_score_end_to_end():
+    from engine import ingest
+
+    record = ('{"ts":1.0,"uid":"CxT1","id.orig_h":"10.1.1.5","id.orig_p":51234,'
+              '"id.resp_h":"10.1.1.9","id.resp_p":80,"proto":"tcp","duration":2.5,'
+              '"orig_bytes":540,"resp_bytes":128000,"orig_pkts":8,"resp_pkts":96}')
+    result = ingest.score_conn_log([record])
+    assert result["scored"] == 1
+    assert 0.0 <= result["results"][0]["score"] <= 1.0
+    assert result["results"][0]["source_ip"] == "10.1.1.5"
+
+
+def test_zeek_adapter_survives_malformed_input():
+    from engine import ingest
+
+    result = ingest.score_conn_log(["", "#comment", "not json", '{"uid":"x"}'])
+    assert result["scored"] == 1  # only the parseable record counts
