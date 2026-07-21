@@ -9,7 +9,7 @@ import os
 import time
 from typing import List, Optional
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -18,9 +18,10 @@ from agents.attack_mapper import build_kill_chain, predict_next_move
 from agents.copilot import chat_with_copilot
 from agents.response_orchestrator import generate_playbook
 from agents.threat_intel import search_threat_intel
-from engine import attribution, fusion, ledger, replay
+from engine import attribution, feedback, fusion, ledger, replay
 from engine.assets import ASSETS, PROVENANCE
 from engine.metrics_registry import attribution as attribution_metrics
+from engine.metrics_registry import continual as metrics_continual
 from engine.metrics_registry import fusion as fusion_metrics
 from engine.metrics_registry import snapshot
 from utils.mitre_loader import source_info
@@ -53,12 +54,33 @@ app.add_middleware(
 STREAM_SIZE = 600
 LLM_CACHE_TTL = 300  # seconds — the free Groq tier will rate-limit under demo clicking
 
-_stream = replay.build_stream(STREAM_SIZE)
-_detections = detect_anomalies(_stream["events"])
 _hosts = fusion.host_signals()
-_incidents = fusion.correlate(_stream["events"], _hosts)
 _llm_cache: dict[str, tuple[float, object]] = {}
+# Feature vectors keyed by event id, so an analyst verdict attaches to the exact row the model
+# scored rather than to a description of it.
+_vector_index: dict[str, tuple] = {}
 _last_coverage: dict | None = None  # automation coverage from the most recent playbook run
+_stream: dict = {}
+_detections: list = []
+_incidents: dict = {}
+
+
+def _rescore(seed: int = 7) -> None:
+    """Rebuild the served window. Called at startup, on refresh, and after every retrain.
+
+    A retrain has to re-score the current window or the UI would show stale verdicts from a
+    model that no longer exists — the whole point of the loop is that the numbers move.
+    """
+    global _stream, _detections, _incidents
+    _stream = replay.build_stream(STREAM_SIZE, seed=seed)
+    _detections = detect_anomalies(_stream["events"])
+    _incidents = fusion.correlate(_stream["events"], _hosts)
+    _vector_index.clear()
+    for event, vector in zip(_stream["events"], _stream["vectors"]):
+        _vector_index[event["id"]] = (vector, event["base_score"])
+
+
+_rescore()
 
 
 def _cached(key: str, produce):
@@ -82,6 +104,12 @@ class ThreatIntelRequest(BaseModel):
 
 class RespondRequest(BaseModel):
     alert_id: Optional[str] = "latest"
+
+
+class FeedbackRequest(BaseModel):
+    alert_id: str
+    verdict: str          # "confirm" or "dismiss"
+    analyst: Optional[str] = "soc-analyst"
 
 
 # ─── ENDPOINTS ───
@@ -133,6 +161,51 @@ def get_dashboard():
 def get_metrics():
     """Measured evaluation results — the numbers the problem statement grades."""
     return snapshot(latency=_stream["latency"], automation=_last_coverage)
+
+
+@app.post("/api/feedback")
+def submit_feedback(req: FeedbackRequest):
+    """Record an analyst verdict and let the adaptive layer learn from it.
+
+    This is the live half of the loop measured in metrics/continual.json. It deliberately does
+    not report its own accuracy: the analyst chooses what to label, so there is no held-out set
+    to score against.
+    """
+    if req.verdict not in ("confirm", "dismiss"):
+        raise HTTPException(status_code=422, detail="verdict must be 'confirm' or 'dismiss'")
+
+    known = _vector_index.get(req.alert_id)
+    if known is None:
+        raise HTTPException(status_code=404, detail=f"unknown alert id: {req.alert_id}")
+
+    vector, base_probability = known
+    result = feedback.record(req.alert_id, req.verdict, list(vector), base_probability,
+                             analyst=(req.analyst or "soc-analyst")[:64])
+
+    if result["retrained"]:
+        _rescore()
+        result["stream"] = {"detections": len(_detections),
+                            "surfaced_by_feedback": _stream["model"]["adapted_scores"]}
+    return result
+
+
+@app.get("/api/feedback")
+def feedback_state():
+    """How many verdicts the loop holds, and whether the adaptive layer is live."""
+    return {
+        "state": feedback.state(),
+        "measured_offline": metrics_continual(),
+        "stream": {"detections": len(_detections),
+                   "surfaced_by_feedback": _stream["model"]["adapted_scores"]},
+    }
+
+
+@app.post("/api/feedback/reset")
+def feedback_reset():
+    """Clear live verdicts. The audit ledger keeps the history either way."""
+    state = feedback.reset()
+    _rescore()
+    return {"state": state, "stream": {"detections": len(_detections)}}
 
 
 @app.get("/api/incidents")
@@ -262,14 +335,11 @@ def copilot_chat(req: CopilotRequest):
 @app.post("/api/refresh")
 def refresh_stream():
     """Re-score a fresh slice of held-out flows."""
-    global _stream, _detections, _incidents
-    _stream = replay.build_stream(STREAM_SIZE, seed=int(time.time()) % 100_000)
-    _detections = detect_anomalies(_stream["events"])
-    _incidents = fusion.correlate(_stream["events"], _hosts)
+    _rescore(seed=int(time.time()) % 100_000)
     _llm_cache.clear()
     return {"status": "refreshed", "total_events": len(_stream["events"]),
             "anomalies": len(_detections), "incidents": _incidents["summary"],
-            "latency": _stream["latency"]}
+            "latency": _stream["latency"], "model": _stream["model"]}
 
 
 if __name__ == "__main__":

@@ -1,10 +1,14 @@
 """
-Replay engine: streams held-out CIC-IDS2017 flows through the real detector.
+Replay engine: streams unseen CIC-IDS2017 captures through the real detector.
 
-The flows come from data/samples/cicids_sample.csv — a stratified slice of the test split
-the model never saw during training. Each flow is scored by engine.detector, and the
-scoring latency is measured with a real timer so the dashboard's latency figure is
-observed rather than asserted.
+Flows come from data/samples/cicids_sample.csv, drawn from Thursday and Friday — capture
+days the base detector was never trained on, since it saw Monday through Wednesday only.
+That is deliberate: the demo should show the model meeting traffic it does not know, which
+is where the analyst feedback loop earns its place. Scoring latency is measured with a real
+timer, so the dashboard's latency figure is observed rather than asserted.
+
+The served score is the frozen model's probability unless analysts have labelled enough
+alerts for the adaptive layer to fit, at which point engine.feedback can raise it.
 
 The dataset's own label is carried on each event as `ground_truth`, used only to display
 whether a given detection was correct. It is never an input to detection; the detector
@@ -20,7 +24,7 @@ from typing import Iterator
 
 import numpy as np
 
-from . import detector
+from . import detector, feedback
 from .assets import PROVENANCE, asset_for
 
 SAMPLE = Path(__file__).resolve().parent.parent / "data" / "samples" / "cicids_sample.csv"
@@ -118,8 +122,13 @@ def build_stream(limit: int = 600, seed: int = 7, attack_ratio: float = 0.17) ->
     labels = [sample["labels"][i] for i in order]
 
     started = time.perf_counter()
-    probabilities = detector.score(X)
+    base_probabilities = detector.score(X)
     elapsed_ms = (time.perf_counter() - started) * 1000
+
+    # The live adaptive layer, if analysts have labelled enough alerts to fit one. Before that
+    # it is a no-op and the served score is the frozen model's, unchanged.
+    probabilities = feedback.adjust(X, base_probabilities)
+    adapted = int((probabilities != base_probabilities).sum())
 
     # Per-event latency is measured again individually so the reported p50/p95 reflect
     # single-event processing rather than the amortised cost of one big batch.
@@ -134,7 +143,8 @@ def build_stream(limit: int = 600, seed: int = 7, attack_ratio: float = 0.17) ->
     step = timedelta(hours=WINDOW_HOURS) / max(len(order), 1)
 
     events = []
-    for position, (probability, family) in enumerate(zip(probabilities, labels)):
+    for position, (probability, base_probability, family) in enumerate(
+            zip(probabilities, base_probabilities, labels)):
         asset_name, asset = asset_for(position)
         is_attack_truth = family != BENIGN
         flagged = bool(probability >= cutoff)
@@ -149,6 +159,8 @@ def build_stream(limit: int = 600, seed: int = 7, attack_ratio: float = 0.17) ->
             "event_type": "network_flow",
             "description": describe(family, float(probability)),
             "anomaly_score": round(float(probability), 4),
+            "base_score": round(float(base_probability), 4),
+            "surfaced_by_feedback": bool(probability != base_probability),
             "detected": flagged,
             "severity": detector.severity_for(float(probability)),
             "asset": asset_name,
@@ -164,7 +176,11 @@ def build_stream(limit: int = 600, seed: int = 7, attack_ratio: float = 0.17) ->
     per_event.sort()
     return {
         "events": events,
+        "vectors": X,
         "provenance": PROVENANCE,
+        "model": {"version": detector.version(),
+                  "adapted_scores": adapted,
+                  "feedback": feedback.state()},
         "latency": {
             "label": "pipeline detection latency, measured (feature vector -> scored detection)",
             "p50_ms": round(per_event[len(per_event) // 2], 3) if per_event else None,
@@ -172,13 +188,14 @@ def build_stream(limit: int = 600, seed: int = 7, attack_ratio: float = 0.17) ->
             "batch_ms_per_event": round(elapsed_ms / max(len(order), 1), 4),
             "sampled_events": len(per_event),
         },
-        "source": "CIC-IDS2017 held-out test split (never seen during training)",
+        "source": "CIC-IDS2017 Thursday/Friday captures — days the base model was never "
+                  "trained on (it saw Monday, Tuesday and Wednesday only)",
         "composition": {
             "events": len(order),
             "ground_truth_attack_share": round(
                 sum(1 for label in labels if label != BENIGN) / max(len(labels), 1), 4),
-            "note": "Stream is re-weighted to the held-out split's real 17% attack share; the "
-                    "committed sample itself is family-stratified so rare classes survive.",
+            "note": "Stream is re-weighted to a realistic 17% attack share; the committed "
+                    "sample is family-stratified so rare classes survive.",
         },
     }
 

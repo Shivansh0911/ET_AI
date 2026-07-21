@@ -35,10 +35,59 @@ def _read(name: str) -> dict | None:
 
 
 def detection() -> dict:
-    report = _read("detection.json")
+    """Headline detection metrics — the cross-capture split, not the flattering one.
+
+    metrics/detection.json (random per-family split, 99.8% recall) is still read, but only as
+    a labelled comparison. Near-duplicate flows from one attack burst landed on both sides of
+    that split, so quoting it as the headline would overstate what the model can do on traffic
+    it has not seen.
+    """
+    report = _read("baseline.json")
     if not report:
         return {"available": False,
-                "reason": "metrics/detection.json missing — run ml/train_detector.py"}
+                "reason": "metrics/baseline.json missing — run ml/train_base.py"}
+
+    cross = report["cross_day"]
+    superseded = _read("detection.json") or {}
+    return {
+        "available": True,
+        "provenance": "measured",
+        "dataset": report["dataset"],
+        "split": report["headline_split"],
+        "why_this_split": report["why"],
+        "model_version": report.get("model_version"),
+        "precision": cross["precision"],
+        "recall": cross["recall"],
+        "f1": cross["f1"],
+        "false_positive_rate": cross["false_positive_rate"],
+        "false_negative_rate": cross["false_negative_rate"],
+        "roc_auc": cross.get("roc_auc"),
+        "test_rows": cross["rows"],
+        "test_attack_rows": cross["tp"] + cross["fn"],
+        "test_benign_rows": cross["tn"] + cross["fp"],
+        "confusion": {k: cross[k] for k in ("tp", "fp", "tn", "fn")},
+        "per_family_detection_rate": {
+            name: {"n": stat["n"], "detected": round(stat["n"] * stat["recall"]),
+                   "rate": stat["recall"]}
+            for name, stat in report["per_family_recall"].items()},
+        "trivial_baselines": {
+            name: {"f1": stat["f1"], "recall": stat["recall"], "precision": stat["precision"]}
+            for name, stat in report["trivial_baselines_same_split"].items()},
+        "superseded_random_split": {
+            "recall": superseded.get("recall"),
+            "precision": superseded.get("precision"),
+            "note": "Random per-family split. Retained for comparison only: near-duplicate "
+                    "flows from one attack burst fall on both sides of it.",
+        },
+        "evaluated_at": report["evaluated_at"],
+        "caveats": report.get("honesty", []),
+    }
+
+
+def _legacy_detection() -> dict:
+    report = _read("detection.json")
+    if not report:
+        return {"available": False}
     return {
         "available": True,
         "provenance": "measured",
@@ -59,6 +108,14 @@ def detection() -> dict:
         "evaluated_at": report["evaluated_at"],
         "caveats": report.get("honesty", []),
     }
+
+
+def continual() -> dict:
+    report = _read("continual.json")
+    if not report:
+        return {"available": False,
+                "reason": "metrics/continual.json missing — run ml/eval_continual.py"}
+    return {"available": True, "provenance": "measured", **report}
 
 
 def attribution() -> dict:
@@ -85,6 +142,7 @@ def snapshot(latency: dict | None = None, automation: dict | None = None) -> dic
     """Assemble the payload the dashboard reads. Every block carries its provenance."""
     return {
         "detection": detection(),
+        "continual_learning": continual(),
         "attribution": attribution(),
         "fusion": fusion(),
         "latency": {"provenance": "measured", **latency} if latency else

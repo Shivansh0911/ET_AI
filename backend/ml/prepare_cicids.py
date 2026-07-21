@@ -210,12 +210,20 @@ def main() -> int:
     return 0
 
 
-def write_sample(per_family: int = 350, benign_rows: int = 1800) -> None:
-    """Commit a small stratified slice of the TEST split for replay and reproducibility.
+HELD_OUT_DAYS = ("Thursday", "Friday")
 
-    Attack families are capped tightly so rare classes survive without bloating the repo.
-    BENIGN gets a much larger quota because the replay engine re-weights the stream back to
-    the split's true ~17% attack share, which needs a deep pool of benign flows to draw from.
+
+def write_sample(per_family: int = 350, benign_rows: int = 1800) -> None:
+    """Commit a stratified slice of Thursday/Friday for replay and reproducibility.
+
+    Drawn from the capture days the base detector was never trained on (ml/train_base.py trains
+    on Mon/Tue/Wed), so the live demo scores genuinely unseen traffic. Sampling from the random
+    per-family split instead would put training flows into the demo stream and inflate what the
+    dashboard shows.
+
+    Attack families are capped tightly so rare classes survive without bloating the repo. BENIGN
+    gets a much larger quota because the replay engine re-weights the stream back to a realistic
+    attack share, which needs a deep pool of benign flows to draw from.
     """
     meta = json.loads((PROCESSED / "feature_meta.json").read_text(encoding="utf-8"))
     names = meta["feature_names"]
@@ -224,9 +232,10 @@ def write_sample(per_family: int = 350, benign_rows: int = 1800) -> None:
     rows, labels = [], []
 
     for shard in sorted(PROCESSED.glob("*.npz")):
+        if not any(day in shard.name for day in HELD_OUT_DAYS):
+            continue
         data = np.load(shard)
-        test = data["split"] == 1
-        X, fam = data["X"][test], data["family"][test]
+        X, fam = data["X"], data["family"]
         for fid in np.unique(fam):
             quota = benign_rows if inverse[int(fid)] == BENIGN else per_family
             room = quota - taken.get(int(fid), 0)

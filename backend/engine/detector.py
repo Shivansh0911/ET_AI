@@ -14,7 +14,10 @@ from typing import Sequence
 
 import numpy as np
 
-ARTIFACT = Path(__file__).resolve().parent.parent / "ml" / "artifacts" / "detector.joblib"
+# The cross-capture model (trained Mon/Tue/Wed only). The earlier random-split artifact
+# scored 99.8% recall by having near-duplicate flows on both sides of its split; serving it
+# would mean the demo stream contained traffic the model had already trained on.
+ARTIFACT = Path(__file__).resolve().parent.parent / "ml" / "artifacts" / "base_detector.joblib"
 
 _lock = threading.Lock()
 _bundle: dict | None = None
@@ -50,6 +53,8 @@ def status() -> dict:
         "model": type(bundle["model"]).__name__,
         "features": len(bundle["features"]),
         "threshold": bundle["threshold"],
+        "version": bundle.get("version", "unversioned"),
+        "trained_on": bundle.get("trained_on", []),
     }
 
 
@@ -72,6 +77,11 @@ def score(vectors: Sequence[Sequence[float]] | np.ndarray) -> np.ndarray:
         raise ValueError(f"expected {expected} features, got {matrix.shape[1]}")
 
     return bundle["model"].predict_proba(bundle["scaler"].transform(matrix))[:, 1]
+
+
+def version() -> str:
+    bundle = _load()
+    return bundle.get("version", "unversioned") if bundle else "unavailable"
 
 
 def threshold() -> float:
