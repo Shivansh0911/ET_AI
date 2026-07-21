@@ -32,10 +32,30 @@ def main() -> int:
         return 1
 
     bundle = json.loads(SOURCE.read_text(encoding="utf-8"))
+    objects = bundle.get("objects", [])
     techniques: dict[str, dict] = {}
     revoked = deprecated = 0
 
-    for obj in bundle.get("objects", []):
+    def attack_id(obj: dict) -> str | None:
+        return next((ref.get("external_id") for ref in obj.get("external_references", [])
+                     if ref.get("source_name") == "mitre-attack"), None)
+
+    # ATT&CK restructures techniques between releases — the whole T1562 "Impair Defenses"
+    # family is revoked as of the 2026-04 release, superseded by T1685 and friends. Public
+    # corpora (OTRF included) still carry the old identifiers, so ship the revocation map
+    # and let the loader resolve legacy ids instead of showing an unnamed technique.
+    stix_ids = {obj["id"]: obj for obj in objects if "id" in obj}
+    revoked_map: dict[str, dict] = {}
+    for relationship in objects:
+        if relationship.get("relationship_type") != "revoked-by":
+            continue
+        source = stix_ids.get(relationship.get("source_ref"), {})
+        target = stix_ids.get(relationship.get("target_ref"), {})
+        old_id, new_id = attack_id(source), attack_id(target)
+        if old_id and new_id:
+            revoked_map[old_id] = {"id": new_id, "name": target.get("name", "")}
+
+    for obj in objects:
         if obj.get("type") != "attack-pattern":
             continue
         if obj.get("revoked"):
@@ -45,9 +65,8 @@ def main() -> int:
             deprecated += 1
             continue
 
-        attack_id = next((ref.get("external_id") for ref in obj.get("external_references", [])
-                          if ref.get("source_name") == "mitre-attack"), None)
-        if not attack_id:
+        technique_id = attack_id(obj)
+        if not technique_id:
             continue
 
         phases = [p["phase_name"].replace("-", " ").title()
@@ -57,8 +76,8 @@ def main() -> int:
         # kill-chain order as the primary so chain reconstruction has a deterministic anchor.
         phases.sort(key=lambda t: TACTIC_ORDER.index(t) if t in TACTIC_ORDER else 99)
 
-        techniques[attack_id] = {
-            "id": attack_id,
+        techniques[technique_id] = {
+            "id": technique_id,
             "name": obj.get("name", ""),
             "tactic": phases[0] if phases else "Unknown",
             "tactics": phases,
@@ -75,6 +94,7 @@ def main() -> int:
         "technique_count": len(techniques),
         "tactic_order": TACTIC_ORDER,
         "techniques": techniques,
+        "revoked_map": revoked_map,
     }
 
     DEST.parent.mkdir(parents=True, exist_ok=True)
@@ -83,7 +103,8 @@ def main() -> int:
     parents = sum(1 for t in techniques.values() if not t["is_subtechnique"])
     print(f"{len(techniques):,} techniques ({parents:,} parent, {len(techniques) - parents:,} sub) "
           f"-> {DEST.relative_to(BACKEND)} ({DEST.stat().st_size / 1e6:.2f} MB)")
-    print(f"skipped {revoked} revoked, {deprecated} deprecated")
+    print(f"skipped {revoked} revoked, {deprecated} deprecated; "
+          f"{len(revoked_map)} legacy ids resolvable to replacements")
     return 0
 
 

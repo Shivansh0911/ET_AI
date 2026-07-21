@@ -40,7 +40,22 @@ def load_mitre_attack() -> dict[str, dict]:
 
 
 def technique(technique_id: str) -> dict | None:
-    return load_mitre_attack().get(technique_id)
+    """Look up a technique, resolving identifiers ATT&CK has since revoked.
+
+    Public corpora lag ATT&CK releases — OTRF datasets still label T1562 'Impair Defenses',
+    which the 2026-04 release revoked in favour of T1685. Resolving keeps those labels
+    displayable, and the result records where it came from rather than hiding the swap.
+    """
+    table = _load()
+    if found := table["techniques"].get(technique_id):
+        return found
+
+    replacement = table.get("revoked_map", {}).get(technique_id)
+    if not replacement:
+        return None
+    current = table["techniques"].get(replacement["id"])
+    return {**current, "resolved_from": technique_id, "resolution": "revoked by ATT&CK"} \
+        if current else None
 
 
 def source_info() -> dict:

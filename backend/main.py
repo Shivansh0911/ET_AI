@@ -17,8 +17,9 @@ from agents.attack_mapper import build_kill_chain, predict_next_move
 from agents.copilot import chat_with_copilot
 from agents.response_orchestrator import generate_playbook
 from agents.threat_intel import search_threat_intel
-from engine import replay
+from engine import attribution, replay
 from engine.assets import ASSETS, PROVENANCE
+from engine.metrics_registry import attribution as attribution_metrics
 from engine.metrics_registry import snapshot
 from utils.mitre_loader import source_info
 
@@ -112,6 +113,40 @@ def get_dashboard():
 def get_metrics():
     """Measured evaluation results — the numbers the problem statement grades."""
     return snapshot(latency=_stream["latency"])
+
+
+@app.get("/api/attribution")
+def get_attribution(limit: int = 12):
+    """Technique attribution on real ATT&CK-labelled captures — predictions and misses.
+
+    Deliberately shows the ground truth next to the prediction. The model is right about
+    half the time at top-1; hiding the misses would be the sort of claim this build removes.
+    """
+    corpus = attribution.corpus()
+    rows = []
+    for dataset in corpus.get("datasets", [])[:limit]:
+        result = attribution.attribute(dataset["tokens"])
+        top = result.get("top") or {}
+        rows.append({
+            "dataset_id": dataset["dataset_id"],
+            "title": dataset["title"],
+            "ground_truth": dataset["techniques"],
+            "predicted": top.get("id"),
+            "predicted_name": top.get("name"),
+            "confidence": top.get("confidence"),
+            "ranked": result.get("ranked", []),
+            "correct": top.get("id") in dataset["techniques"],
+            "event_count": dataset["event_count"],
+            "sample_events": dataset["sample_events"][:6],
+        })
+
+    return {
+        "corpus": corpus.get("source"),
+        "note": corpus.get("note"),
+        "attributor": attribution.status(),
+        "metrics": attribution_metrics(),
+        "results": rows,
+    }
 
 
 @app.get("/api/events")
