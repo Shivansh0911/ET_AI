@@ -34,21 +34,33 @@ Free hosts for a small FastAPI service that needs to "always work" during a hack
    | **Start Command** | `uvicorn main:app --host 0.0.0.0 --port $PORT` |
    | **Instance Type** | `Free` |
 
-5. Scroll to **Environment Variables** → **Add Environment Variable** and add all three of these (paste your actual key values, not the words themselves):
+5. Scroll to **Environment Variables** → **Add Environment Variable** and add these (paste your actual key values, not the words themselves):
 
    | Key | Value |
    |---|---|
    | `GROQ_API_KEY` | *your Groq key from console.groq.com* |
    | `TAVILY_API_KEY` | *your Tavily key from app.tavily.com (optional — app degrades gracefully without it)* |
+   | `ALLOWED_ORIGINS` | your Netlify origin, e.g. `https://cybersentinell.netlify.app` (comma-separated for several) |
    | `PYTHON_VERSION` | `3.11.9` |
 
-   The `PYTHON_VERSION` variable is important — without it, Render may default to a brand-new Python (e.g. 3.14) that doesn't have a prebuilt `pydantic-core` wheel yet, which fails the build with `error: metadata-generation-failed`. The repo also ships a `.python-version` file as a fallback, but setting the env var explicitly is the most reliable fix if a build still picks the wrong version.
+   `ALLOWED_ORIGINS` locks CORS to your frontend. Without it the API falls back to a built-in
+   list containing `https://cybersentinell.netlify.app` and localhost — if you renamed the
+   Netlify site, set this or the browser will block every request.
+
+   `PYTHON_VERSION` pins the interpreter. This used to be load-bearing: `pydantic==2.7.0` had no
+   wheel for Python 3.12+, so a newer default failed the build with
+   `error: metadata-generation-failed`. The pin has since moved to `pydantic==2.11.7`, which has
+   wheels through 3.13, but keeping the version explicit still avoids surprises.
+
+   **Build note:** `requirements.txt` now includes `scikit-learn`, `numpy` and `joblib` for model
+   inference, so the first build takes longer than it used to. The trained artifact is 2.2 MB and
+   loads lazily on first request, comfortably inside the free tier's 512 MB.
 
 6. Click **Create Web Service**. Render will build and deploy — first deploy takes 2-5 minutes. Watch the **Logs** tab for `Uvicorn running on http://0.0.0.0:...` to confirm success.
 7. Once live, copy the URL Render gives you — it looks like:
-   `https://cybersentinel-backend.onrender.com`
-8. Test it: open `https://cybersentinel-backend.onrender.com/` in a browser — you should see
-   `{"status":"CyberSentinel API active","version":"1.0.0"}`.
+   `https://et-ai-vs97.onrender.com`
+8. Test it: open `https://et-ai-vs97.onrender.com/` in a browser — you should see
+   `{"status":"CyberSentinel API active","version":"2.0.0", "detector": {...}}` — the `detector.available` field should be `true`, confirming the trained model loaded..
 
 ### Keep it always-warm (free) — UptimeRobot
 
@@ -60,7 +72,7 @@ Free hosts for a small FastAPI service that needs to "always work" during a hack
    |---|---|
    | **Monitor Type** | `HTTP(s)` |
    | **Friendly Name** | `CyberSentinel Backend` |
-   | **URL (or IP)** | `https://cybersentinel-backend.onrender.com/` |
+   | **URL (or IP)** | your Render URL from Part 1, e.g. `https://et-ai-vs97.onrender.com/` |
    | **Monitoring Interval** | `5 minutes` (free plan minimum) |
 
 4. Save. UptimeRobot will now hit your root endpoint every 5 minutes — well under Render's 15-minute sleep timer — so the service never goes cold. Do this **before** you demo/submit, and leave it running through judging.
@@ -85,11 +97,15 @@ Free hosts for a small FastAPI service that needs to "always work" during a hack
 
    | Key | Value |
    |---|---|
-   | `VITE_API_URL` | `https://cybersentinel-backend.onrender.com` (your Render URL from Part 1, **no trailing slash**) |
+   | `VITE_API_URL` | `https://et-ai-vs97.onrender.com` (your Render URL from Part 1, **no trailing slash**) |
+
+   This is not optional. Vite bakes it in at build time, so a build without it ships a bundle
+   that calls `localhost:8000` and fails on every panel. `frontend/netlify.toml` already sets the
+   base directory, build command and publish directory, so steps 3's fields should auto-fill.
 
 5. Click **Deploy site**. Netlify builds and gives you a URL like `https://random-name-123.netlify.app` (renameable under **Site configuration → Change site name**).
 6. **If you set the environment variable after the first deploy**, trigger a redeploy: **Deploys** tab → **Trigger deploy** → **Deploy site** (env vars are baked in at build time by Vite, so a rebuild is required for the change to take effect).
-7. Open the Netlify URL and click through all 5 tabs to confirm it's talking to the live backend (Dashboard should populate with real numbers, not the "Unable to load dashboard data" error).
+7. Open the Netlify URL and click through all 8 tabs to confirm it's talking to the live backend. The Dashboard should populate rather than showing "Unable to load dashboard data", and the **Evidence** tab should show the measured benchmark figures.
 
 ---
 
@@ -98,5 +114,8 @@ Free hosts for a small FastAPI service that needs to "always work" during a hack
 - [ ] Render backend responds at its `/` URL
 - [ ] UptimeRobot monitor is **active** (not paused)
 - [ ] Netlify site loads and Dashboard shows real data (not an error banner)
+- [ ] `/` shows `"detector": {"available": true}` — the model artifact loaded
+- [ ] Evidence tab shows measured precision/recall, not "metrics unavailable"
+- [ ] Response tab generates a playbook, then Audit tab shows the chain intact with entries
 - [ ] Copilot tab returns a real answer (proves `GROQ_API_KEY` is set correctly on Render)
 - [ ] Open the Netlify URL once ~10 minutes before you go on stage/submit, just in case the very first Render request after a long gap is slow

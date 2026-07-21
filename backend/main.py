@@ -5,6 +5,7 @@ AI-Powered Cyber Resilience Platform for Critical National Infrastructure
 Every number this API serves is either measured by ml/ evaluation scripts, timed at request
 time, or explicitly labelled as a cited reference. There are no hardcoded results.
 """
+import os
 import time
 from typing import List, Optional
 
@@ -26,12 +27,27 @@ from utils.mitre_loader import source_info
 
 app = FastAPI(title="CyberSentinel API", version="2.0.0")
 
+# Locked to the deployed frontend plus local dev. The previous configuration paired
+# allow_origins=["*"] with allow_credentials=True, which is both wrong for a security
+# project and invalid per the Fetch spec — browsers reject a wildcard origin on
+# credentialed requests. Nothing here uses cookies, so credentials stay off and the
+# origin list is explicit. Override with ALLOWED_ORIGINS (comma-separated) at deploy time.
+DEFAULT_ORIGINS = [
+    "https://cybersentinell.netlify.app",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+ALLOWED_ORIGINS = [origin.strip() for origin
+                   in os.environ.get("ALLOWED_ORIGINS", ",".join(DEFAULT_ORIGINS)).split(",")
+                   if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"^https://[a-z0-9-]+--cybersentinell\.netlify\.app$",  # deploy previews
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
 
 STREAM_SIZE = 600
@@ -257,8 +273,6 @@ def refresh_stream():
 
 
 if __name__ == "__main__":
-    import os
-
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))

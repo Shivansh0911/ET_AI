@@ -1,0 +1,16 @@
+[build]
+  base = "frontend"
+  command = "npm run build"
+  publish = "dist"
+
+# VITE_API_URL must be set in Netlify's UI (Site configuration -> Environment variables)
+# and the site rebuilt afterwards — Vite bakes env vars in at build time, so setting the
+# variable without a redeploy changes nothing. Without it the bundle calls localhost:8000
+# and every panel fails; src/utils/api.js logs a loud console error if that happens.
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "DENY"
+    Referrer-Policy = "strict-origin-when-cross-origin"
