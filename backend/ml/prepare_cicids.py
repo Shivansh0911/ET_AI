@@ -210,8 +210,13 @@ def main() -> int:
     return 0
 
 
-def write_sample(per_family: int = 350) -> None:
-    """Commit a small stratified slice of the TEST split for replay and reproducibility."""
+def write_sample(per_family: int = 350, benign_rows: int = 1800) -> None:
+    """Commit a small stratified slice of the TEST split for replay and reproducibility.
+
+    Attack families are capped tightly so rare classes survive without bloating the repo.
+    BENIGN gets a much larger quota because the replay engine re-weights the stream back to
+    the split's true ~17% attack share, which needs a deep pool of benign flows to draw from.
+    """
     meta = json.loads((PROCESSED / "feature_meta.json").read_text(encoding="utf-8"))
     names = meta["feature_names"]
     inverse = {v: k for k, v in meta["families"].items()}
@@ -223,7 +228,8 @@ def write_sample(per_family: int = 350) -> None:
         test = data["split"] == 1
         X, fam = data["X"][test], data["family"][test]
         for fid in np.unique(fam):
-            room = per_family - taken.get(int(fid), 0)
+            quota = benign_rows if inverse[int(fid)] == BENIGN else per_family
+            room = quota - taken.get(int(fid), 0)
             if room <= 0:
                 continue
             idx = np.flatnonzero(fam == fid)[:room]

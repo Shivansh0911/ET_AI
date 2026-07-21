@@ -1,20 +1,28 @@
 """
 CyberSentinel — FastAPI Backend
 AI-Powered Cyber Resilience Platform for Critical National Infrastructure
+
+Every number this API serves is either measured by ml/ evaluation scripts, timed at request
+time, or explicitly labelled as a cited reference. There are no hardcoded results.
 """
+import time
+from typing import List, Optional
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional
 
-from data.synthetic_logs import generate_logs, ASSETS
-from agents.anomaly_detector import detect_anomalies, analyze_compound_threat
+from agents.anomaly_detector import analyze_compound_threat, detect_anomalies, detector_status
 from agents.attack_mapper import build_kill_chain, predict_next_move
-from agents.threat_intel import search_threat_intel
-from agents.response_orchestrator import generate_playbook
 from agents.copilot import chat_with_copilot
+from agents.response_orchestrator import generate_playbook
+from agents.threat_intel import search_threat_intel
+from engine import replay
+from engine.assets import ASSETS, PROVENANCE
+from engine.metrics_registry import snapshot
+from utils.mitre_loader import source_info
 
-app = FastAPI(title="CyberSentinel API", version="1.0.0")
+app = FastAPI(title="CyberSentinel API", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -24,116 +32,148 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-CURRENT_LOGS = generate_logs(200)
-CURRENT_ANOMALIES = detect_anomalies(CURRENT_LOGS)
+STREAM_SIZE = 600
+LLM_CACHE_TTL = 300  # seconds — the free Groq tier will rate-limit under demo clicking
+
+_stream = replay.build_stream(STREAM_SIZE)
+_detections = detect_anomalies(_stream["events"])
+_llm_cache: dict[str, tuple[float, object]] = {}
+
+
+def _cached(key: str, produce):
+    """Serve repeated LLM answers from a short TTL cache so a live demo cannot rate-limit."""
+    hit = _llm_cache.get(key)
+    if hit and time.time() - hit[0] < LLM_CACHE_TTL:
+        return hit[1]
+    value = produce()
+    _llm_cache[key] = (time.time(), value)
+    return value
+
 
 class CopilotRequest(BaseModel):
     message: str
     context: Optional[List[dict]] = []
 
+
 class ThreatIntelRequest(BaseModel):
     query: str
 
+
 class RespondRequest(BaseModel):
     alert_id: Optional[str] = "latest"
+
 
 # ─── ENDPOINTS ───
 
 @app.get("/")
 def root():
-    return {"status": "CyberSentinel API active", "version": "1.0.0"}
+    return {"status": "CyberSentinel API active", "version": app.version,
+            "detector": detector_status()}
+
 
 @app.get("/api/dashboard")
 def get_dashboard():
-    """Main dashboard data — all KPIs, events, and anomalies."""
-    anomalies = CURRENT_ANOMALIES
+    """Main dashboard data — all KPIs, events, and detections."""
     severity_counts = {"critical": 0, "high": 0, "medium": 0, "low": 0, "info": 0}
-    for e in CURRENT_LOGS:
-        sev = e.get("severity", "info")
-        if sev in severity_counts:
-            severity_counts[sev] += 1
+    for event in _stream["events"]:
+        severity_counts[event["severity"]] = severity_counts.get(event["severity"], 0) + 1
 
-    location_threats = {}
-    for a in anomalies:
-        loc = a.get("location", "Unknown")
-        if loc not in location_threats:
-            location_threats[loc] = {"city": loc, "count": 0, "lat": a.get("lat", 0), "lng": a.get("lng", 0), "critical": 0}
-        location_threats[loc]["count"] += 1
-        if a.get("severity") == "critical":
-            location_threats[loc]["critical"] += 1
+    location_threats: dict[str, dict] = {}
+    infra_breakdown: dict[str, int] = {}
+    for detection in _detections:
+        location = detection["location"]
+        bucket = location_threats.setdefault(location, {
+            "city": location, "count": 0, "critical": 0,
+            "lat": detection["lat"], "lng": detection["lng"],
+        })
+        bucket["count"] += 1
+        if detection["severity"] == "critical":
+            bucket["critical"] += 1
+        infra_breakdown[detection["infra_type"]] = infra_breakdown.get(detection["infra_type"], 0) + 1
 
-    infra_breakdown = {}
-    for a in anomalies:
-        infra = a.get("infra_type", "Other")
-        infra_breakdown[infra] = infra_breakdown.get(infra, 0) + 1
+    correct = sum(1 for e in _stream["events"] if e["ground_truth"]["correct"])
 
     return {
-        "total_events": len(CURRENT_LOGS),
-        "total_anomalies": len(anomalies),
+        "total_events": len(_stream["events"]),
+        "total_anomalies": len(_detections),
         "severity_counts": severity_counts,
         "location_threats": list(location_threats.values()),
         "infra_breakdown": infra_breakdown,
-        "recent_anomalies": anomalies[:20],
+        "recent_anomalies": _detections[:20],
         "assets_monitored": len(ASSETS),
-        "mttd_minutes": 4.2,
-        "mttr_minutes": 12.8,
+        "window_accuracy": round(correct / max(len(_stream["events"]), 1), 4),
+        "data_provenance": PROVENANCE,
+        "stream_source": _stream["source"],
+        "latency": _stream["latency"],
     }
+
+
+@app.get("/api/metrics")
+def get_metrics():
+    """Measured evaluation results — the numbers the problem statement grades."""
+    return snapshot(latency=_stream["latency"])
+
 
 @app.get("/api/events")
 def get_events(limit: int = 50):
-    """Get recent security events."""
-    return {"events": CURRENT_LOGS[:limit], "total": len(CURRENT_LOGS)}
+    return {"events": _stream["events"][:limit], "total": len(_stream["events"]),
+            "source": _stream["source"], "provenance": PROVENANCE}
+
 
 @app.get("/api/anomalies")
 def get_anomalies():
-    """Get detected anomalies."""
-    return {"anomalies": CURRENT_ANOMALIES, "total": len(CURRENT_ANOMALIES)}
+    return {"anomalies": _detections, "total": len(_detections),
+            "detector": detector_status()}
+
 
 @app.get("/api/kill-chain")
 def get_kill_chain():
-    """Get MITRE ATT&CK kill chain mapping."""
-    chain = build_kill_chain(CURRENT_ANOMALIES)
-    prediction = predict_next_move(chain)
-    return {"kill_chain": chain, "next_move_prediction": prediction}
+    chain = build_kill_chain(_detections)
+    prediction = _cached("next-move", lambda: predict_next_move(chain))
+    return {"kill_chain": chain, "next_move_prediction": prediction,
+            "attack_table": source_info()}
+
 
 @app.get("/api/compound-analysis")
 def get_compound_analysis():
-    """Get AI compound threat analysis."""
-    analysis = analyze_compound_threat(CURRENT_ANOMALIES)
-    return {"analysis": analysis, "anomaly_count": len(CURRENT_ANOMALIES)}
+    analysis = _cached("compound", lambda: analyze_compound_threat(_detections))
+    return {"analysis": analysis, "anomaly_count": len(_detections)}
+
 
 @app.post("/api/threat-intel")
 def get_threat_intel(req: ThreatIntelRequest):
-    """Search threat intelligence."""
-    return search_threat_intel(req.query)
+    return _cached(f"intel:{req.query.lower().strip()}",
+                   lambda: search_threat_intel(req.query))
+
 
 @app.post("/api/respond")
 def generate_response(req: RespondRequest):
-    """Generate incident response playbook."""
-    alert = CURRENT_ANOMALIES[0] if CURRENT_ANOMALIES else {"id": "none", "severity": "info", "description": "No active alerts"}
+    alert = _detections[0] if _detections else {
+        "id": "none", "severity": "info", "description": "No active detections"}
     if req.alert_id and req.alert_id != "latest":
-        for a in CURRENT_ANOMALIES:
-            if a.get("id") == req.alert_id:
-                alert = a
-                break
-    chain = build_kill_chain(CURRENT_ANOMALIES)
-    return generate_playbook(alert, chain)
+        alert = next((a for a in _detections if a["id"] == req.alert_id), alert)
+    return generate_playbook(alert, build_kill_chain(_detections))
+
 
 @app.post("/api/copilot")
 def copilot_chat(req: CopilotRequest):
-    """Chat with the security copilot."""
-    response = chat_with_copilot(req.message, req.context, CURRENT_ANOMALIES)
-    return {"response": response}
+    return {"response": chat_with_copilot(req.message, req.context, _detections)}
+
 
 @app.post("/api/refresh")
-def refresh_logs():
-    """Generate fresh synthetic logs (simulate new event stream)."""
-    global CURRENT_LOGS, CURRENT_ANOMALIES
-    CURRENT_LOGS = generate_logs(200)
-    CURRENT_ANOMALIES = detect_anomalies(CURRENT_LOGS)
-    return {"status": "refreshed", "total_events": len(CURRENT_LOGS), "anomalies": len(CURRENT_ANOMALIES)}
+def refresh_stream():
+    """Re-score a fresh slice of held-out flows."""
+    global _stream, _detections
+    _stream = replay.build_stream(STREAM_SIZE, seed=int(time.time()) % 100_000)
+    _detections = detect_anomalies(_stream["events"])
+    _llm_cache.clear()
+    return {"status": "refreshed", "total_events": len(_stream["events"]),
+            "anomalies": len(_detections), "latency": _stream["latency"]}
+
 
 if __name__ == "__main__":
     import os
+
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
