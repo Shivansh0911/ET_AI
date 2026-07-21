@@ -1,81 +1,69 @@
+/* Inter for the interface, JetBrains Mono for machine values. Loaded with display=swap and a
+   full system fallback stack, so a slow venue network degrades the typeface rather than the
+   layout. */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Monospace is reserved for machine-emitted values — hashes, IDs, IPs, technique numbers,
-   measured figures. Prose is set in the UI face. The previous build ran whole conversations
-   in monospace, which reads as costume rather than precision. */
-:root {
-  --font-ui: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
-}
-
 body {
-  background-color: #08090b;
-  color: #e7e9ec;
-  font-family: var(--font-ui);
-  font-size: 14px;
+  background-color: #0c1017;
+  color: #e8ecf2;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 13px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-.mono {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
-}
+/* Figures must not reflow as they change — every number that updates live is tabular. */
+.tabular { font-variant-numeric: tabular-nums; }
 
-/* Figures that change need to sit still while they do it. */
-.figure {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
-}
+::selection { background: rgba(109, 140, 245, 0.28); }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #1e232c; border-radius: 6px; border: 2px solid #08090b; }
-::-webkit-scrollbar-thumb:hover { background: #2b323d; }
+::-webkit-scrollbar-thumb { background: #232c3b; border-radius: 6px; border: 2px solid transparent; background-clip: content-box; }
+::-webkit-scrollbar-thumb:hover { background: #2f3a4c; background-clip: content-box; }
 
-/* Rendered markdown from the model. Tight vertical rhythm so an answer reads as one block
-   rather than a stack of loose paragraphs. */
-.prose-answer > * + * { margin-top: 0.6rem; }
-.prose-answer strong { color: #e7e9ec; font-weight: 600; }
-.prose-answer p { color: #c3c9d2; }
-.prose-answer ul { list-style: disc; padding-left: 1.15rem; }
-.prose-answer ol { list-style: decimal; padding-left: 1.35rem; }
-.prose-answer li { color: #c3c9d2; margin-top: 0.2rem; }
-.prose-answer li::marker { color: #6b7482; }
-.prose-answer code {
-  font-family: var(--font-mono);
-  font-size: 0.85em;
-  background: #151920;
-  border: 1px solid #1e232c;
-  border-radius: 4px;
-  padding: 0.05rem 0.3rem;
-  color: #b9c2ce;
-}
-.prose-answer pre {
-  background: #0e1013;
-  border: 1px solid #1e232c;
-  border-radius: 8px;
-  padding: 0.75rem;
-  overflow-x: auto;
-}
-.prose-answer pre code { background: none; border: none; padding: 0; }
-.prose-answer h1, .prose-answer h2, .prose-answer h3 {
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: #e7e9ec;
-  text-transform: none;
-}
-.prose-answer a { color: #5b8def; text-decoration: underline; }
-.prose-answer table { width: 100%; font-size: 0.8125rem; border-collapse: collapse; }
-.prose-answer th, .prose-answer td {
-  border-bottom: 1px solid #1e232c;
-  padding: 0.3rem 0.5rem;
-  text-align: left;
-}
+:focus-visible { outline: 2px solid #6d8cf5; outline-offset: 2px; border-radius: 4px; }
 
-@keyframes rise { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
-.rise { animation: rise 0.18s ease-out both; }
+/* Rendered markdown from the assistant. The old build printed literal asterisks; this is the
+   type treatment that replaces it. */
+.answer { font-size: 13px; line-height: 1.6; color: #c6cddb; }
+.answer > * + * { margin-top: 0.55rem; }
+.answer strong { color: #e8ecf2; font-weight: 600; }
+.answer em { color: #9aa5b6; }
+.answer ul { list-style: disc; padding-left: 1.1rem; }
+.answer ol { list-style: decimal; padding-left: 1.3rem; }
+.answer li { margin-top: 0.15rem; }
+.answer li::marker { color: #697384; }
+.answer h1, .answer h2, .answer h3 {
+  font-size: 0.8125rem; font-weight: 600; color: #e8ecf2; margin-top: 0.9rem;
+}
+.answer code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 0.8em; background: #19202c; border: 1px solid #232c3b;
+  border-radius: 4px; padding: 0.05rem 0.3rem; color: #b6c0d0;
+}
+.answer pre {
+  background: #0c1017; border: 1px solid #232c3b; border-radius: 8px;
+  padding: 0.7rem; overflow-x: auto;
+}
+.answer pre code { background: none; border: none; padding: 0; }
+.answer a { color: #6d8cf5; text-decoration: underline; text-underline-offset: 2px; }
+.answer blockquote { border-left: 2px solid #2f3a4c; padding-left: 0.7rem; color: #9aa5b6; }
+.answer table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+.answer th, .answer td { border-bottom: 1px solid #232c3b; padding: 0.3rem 0.5rem; text-align: left; }
+.answer th { color: #9aa5b6; font-weight: 500; }
+
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.rise { animation: rise 0.2s cubic-bezier(0.2, 0.7, 0.3, 1) both; }
+
+@keyframes breathe { 0%, 100% { opacity: 0.5; } 50% { opacity: 0.9; } }
+.breathe { animation: breathe 2.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .breathe { animation: none; }
+}

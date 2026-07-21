@@ -1,86 +1,193 @@
-import { useEffect, useState } from 'react'
-import { ChevronRight } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Check, Circle, Sparkles, ChevronRight } from 'lucide-react'
 import { api } from '../utils/api'
-import { Panel, Severity, Answer, Loading, Failed, Empty, Row, Provenance } from './ui'
+import { Card, Severity, Answer, Loading, Failed, Mono, DataRow, SectionTitle, Provenance, severityHex } from './ui'
+
+// The full ATT&CK progression is always drawn, not just the stages that fired. A chain with four
+// boxes tells you what was seen; a chain with fourteen positions tells you where in the attack
+// you are and how much runway is left — which is the question an analyst is actually asking.
+const TACTIC_ORDER = [
+  'Reconnaissance', 'Resource Development', 'Initial Access', 'Execution', 'Persistence',
+  'Privilege Escalation', 'Defense Evasion', 'Credential Access', 'Discovery',
+  'Lateral Movement', 'Collection', 'Command And Control', 'Exfiltration', 'Impact',
+]
+
+const SHORT = {
+  'Reconnaissance': 'Recon', 'Resource Development': 'Resource Dev', 'Initial Access': 'Initial Access',
+  'Privilege Escalation': 'Priv Esc', 'Defense Evasion': 'Evasion', 'Credential Access': 'Cred Access',
+  'Lateral Movement': 'Lateral', 'Command And Control': 'C2', 'Exfiltration': 'Exfil',
+}
 
 export default function AttackChain() {
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
-  const [selected, setSelected] = useState(null)
+  const [open, setOpen] = useState(null)
 
   useEffect(() => {
-    api.getKillChain().then(setData).catch(() => setError('Could not load the kill chain.'))
+    api.getKillChain().then(setData).catch(() => setError('The kill chain did not load.'))
   }, [])
 
-  if (error) return <Failed>{error}</Failed>
-  if (!data) return <Loading>Assembling the chain…</Loading>
+  const stages = useMemo(() => {
+    if (!data) return []
+    const observed = new Map((data.kill_chain || []).map((s) => [s.tactic, s]))
+    const lastSeen = TACTIC_ORDER.reduce((acc, t, i) => (observed.has(t) ? i : acc), -1)
 
-  const chain = data.kill_chain || []
+    return TACTIC_ORDER.map((tactic, index) => {
+      const stage = observed.get(tactic)
+      return {
+        tactic,
+        short: SHORT[tactic] || tactic,
+        stage,
+        state: stage
+          ? (index === lastSeen ? 'active' : 'observed')
+          : (index > lastSeen ? 'ahead' : 'skipped'),
+      }
+    })
+  }, [data])
+
+  if (error) return <Failed>{error}</Failed>
+  if (!data) return <Loading>Reconstructing the chain</Loading>
+
+  const observedCount = (data.kill_chain || []).length
+  const furthest = stages.filter((s) => s.stage).pop()
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-[15px] font-semibold text-content">Kill chain</h1>
-        <p className="mt-0.5 max-w-3xl text-[12px] leading-relaxed text-content-faint">
-          {data.attack_table.technique_count.toLocaleString()} techniques from the official
-          MITRE STIX bundle. Each stage is anchored on its earliest detection, so the sequence
-          reads forward in time rather than by whichever alert happened to arrive last.
-        </p>
+      <SectionTitle hint={`Every stage of the ATT&CK progression, drawn whether or not it fired. ${data.attack_table.technique_count.toLocaleString()} techniques from the official MITRE bundle; each stage anchors on its earliest detection so the sequence reads forward in time.`}>
+        Attack progression
+      </SectionTitle>
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <Card>
+          <div className="text-label uppercase text-ink-faint">Stages reached</div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="tabular text-figure font-semibold text-ink">{observedCount}</span>
+            <span className="text-meta text-ink-faint">of {TACTIC_ORDER.length}</span>
+          </div>
+        </Card>
+        <Card>
+          <div className="text-label uppercase text-ink-faint">Furthest stage</div>
+          <div className="mt-1 text-title font-semibold text-ink">
+            {furthest ? furthest.tactic : 'None observed'}
+          </div>
+        </Card>
+        <Card>
+          <div className="text-label uppercase text-ink-faint">Techniques seen</div>
+          <div className="mt-1 flex flex-wrap gap-1.5">
+            {(data.kill_chain || []).map((s) => (
+              <Mono key={s.technique_id} className="rounded border border-line px-1.5 py-px text-[11px]">
+                {s.technique_id}
+              </Mono>
+            ))}
+            {observedCount === 0 && <span className="text-meta text-ink-faint">—</span>}
+          </div>
+        </Card>
       </div>
 
-      {chain.length === 0 ? (
-        <Empty>Nothing in this window maps to a technique yet.</Empty>
-      ) : (
-        <Panel title="Observed progression">
-          <div className="flex items-stretch gap-2 overflow-x-auto pb-1">
-            {chain.map((stage, i) => (
-              <div key={stage.tactic} className="flex items-center gap-2">
-                <button
-                  onClick={() => setSelected(selected?.tactic === stage.tactic ? null : stage)}
-                  className={`min-w-[168px] rounded-md border p-3 text-left transition-colors ${
-                    selected?.tactic === stage.tactic
-                      ? 'border-accent-line bg-accent-soft'
-                      : 'border-ink-700 bg-ink-800 hover:border-ink-600'
-                  }`}
-                >
-                  <div className="text-label uppercase text-content-faint">{stage.tactic}</div>
-                  <div className="mt-1 text-[13px] font-medium text-content">
-                    {stage.technique_name}
-                  </div>
-                  <div className="mono mt-0.5 text-[11px] text-content-faint">
-                    {stage.technique_id} · {stage.detections} detection{stage.detections === 1 ? '' : 's'}
-                  </div>
-                  <div className="mt-2"><Severity level={stage.severity} /></div>
-                </button>
-                {i < chain.length - 1 && (
-                  <ChevronRight className="shrink-0 text-ink-600" size={16} />
-                )}
+      <Card bare>
+        <div className="overflow-x-auto px-5 py-5">
+          <div className="flex min-w-max items-start gap-1">
+            {stages.map((s, i) => {
+              const isOpen = open === s.tactic
+              const clickable = Boolean(s.stage)
+              const colour = s.stage ? severityHex(s.stage.severity) : '#2f3a4c'
+
+              return (
+                <div key={s.tactic} className="flex items-start">
+                  <button
+                    disabled={!clickable}
+                    onClick={() => setOpen(isOpen ? null : s.tactic)}
+                    className={`w-[124px] rounded-lg border px-3 py-3 text-left transition-colors ${
+                      isOpen ? 'border-accent-line bg-accent-soft'
+                        : s.state === 'active' ? 'border-line-strong bg-surface-2'
+                        : s.stage ? 'border-line bg-surface-2 hover:border-line-strong'
+                        : 'border-dashed border-line bg-transparent'
+                    } ${clickable ? 'cursor-pointer' : 'cursor-default'}`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      {s.stage ? (
+                        s.state === 'active'
+                          ? <span className="breathe h-2 w-2 rounded-full" style={{ background: colour }} />
+                          : <Check size={11} style={{ color: colour }} />
+                      ) : (
+                        <Circle size={9} className="text-line-strong" />
+                      )}
+                      <span className={`text-[11px] font-medium tracking-wide ${
+                        s.stage ? 'text-ink' : 'text-ink-faint'}`}>
+                        {s.short}
+                      </span>
+                    </div>
+
+                    {s.stage ? (
+                      <>
+                        <div className="mt-1.5 line-clamp-2 text-meta leading-snug text-ink-muted">
+                          {s.stage.technique_name}
+                        </div>
+                        <Mono className="mt-1 block text-[10px]">{s.stage.technique_id}</Mono>
+                        <div className="mt-1.5">
+                          <Severity level={s.stage.severity} dot />
+                        </div>
+                      </>
+                    ) : (
+                      <div className="mt-1.5 text-meta text-ink-faint">
+                        {s.state === 'ahead' ? 'not yet observed' : 'not observed'}
+                      </div>
+                    )}
+                  </button>
+
+                  {i < stages.length - 1 && (
+                    <ChevronRight size={14} className="mt-6 shrink-0 text-line-strong" />
+                  )}
+                </div>
+              )
+            })}
+
+            <div className="ml-2 flex items-start">
+              <div className="w-[150px] rounded-lg border border-dashed border-accent-line
+                bg-accent-soft px-3 py-3">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles size={11} className="text-accent" />
+                  <span className="text-[11px] font-medium tracking-wide text-accent">Predicted</span>
+                </div>
+                <div className="mt-1.5 text-meta leading-snug text-ink-muted">
+                  Model projection of the next move — not an observation.
+                </div>
               </div>
-            ))}
+            </div>
           </div>
-        </Panel>
+        </div>
+      </Card>
+
+      {open && (
+        <Card title={stages.find((s) => s.tactic === open)?.stage?.technique_name} className="rise"
+          aside={<Severity level={stages.find((s) => s.tactic === open)?.stage?.severity} />}>
+          {(() => {
+            const stage = stages.find((s) => s.tactic === open)?.stage
+            return (
+              <>
+                <p className="text-body text-ink-muted">{stage.event}</p>
+                <div className="mt-3">
+                  <DataRow label="tactic">{stage.tactic}</DataRow>
+                  <DataRow label="technique">{stage.technique_id}</DataRow>
+                  <DataRow label="asset">{stage.asset}</DataRow>
+                  <DataRow label="detections">{stage.detections}</DataRow>
+                  <DataRow label="peak score">{stage.max_score}</DataRow>
+                  <DataRow label="first seen">{stage.first_seen}</DataRow>
+                  <DataRow label="last seen">{stage.last_seen}</DataRow>
+                </div>
+              </>
+            )
+          })()}
+        </Card>
       )}
 
-      {selected && (
-        <Panel title={`${selected.technique_id} · ${selected.technique_name}`}>
-          <p className="text-[13px] text-content-muted">{selected.event}</p>
-          <div className="mt-2">
-            <Row label="asset">{selected.asset}</Row>
-            <Row label="detections">{selected.detections}</Row>
-            <Row label="peak score">{selected.max_score}</Row>
-            <Row label="first seen">{selected.first_seen}</Row>
-            <Row label="last seen">{selected.last_seen}</Row>
-          </div>
-        </Panel>
-      )}
-
-      <Panel
-        title="Projected next move"
-        subtitle="Groq reasoning over the stages above. A projection, not a measurement."
-        actions={<Provenance kind="illustrative" />}
+      <Card
+        title="Where this is heading"
+        hint="Generated by the language model from the stages above. A projection, not a measurement."
+        aside={<Provenance kind="illustrative" />}
       >
         <Answer>{data.next_move_prediction}</Answer>
-      </Panel>
+      </Card>
     </div>
   )
 }

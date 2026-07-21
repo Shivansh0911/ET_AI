@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Play, Check, PauseCircle, Clock } from 'lucide-react'
 import { api } from '../utils/api'
-import { Panel, Button, Figure, Severity, Failed, Empty, Row } from './ui'
+import { Card, Button, Stat, Severity, Failed, Empty, DataRow } from './ui'
 
 export default function ResponsePanel() {
   const [playbook, setPlaybook] = useState(null)
@@ -27,8 +27,8 @@ export default function ResponsePanel() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-[15px] font-semibold text-content">Response</h1>
-          <p className="mt-0.5 max-w-2xl text-[12px] leading-relaxed text-content-faint">
+          <h1 className="text-title font-semibold text-ink">Response</h1>
+          <p className="mt-0.5 max-w-2xl text-meta leading-relaxed text-ink-faint">
             The model drafts a playbook; the executor decides what can actually run, puts
             anything above the blast-radius threshold in front of a human, and seals every
             decision in the audit chain.
@@ -42,15 +42,15 @@ export default function ResponsePanel() {
       {error && <Failed>{error}</Failed>}
 
       {!playbook && !busy && (
-        <Empty>No playbook yet. Draft one to populate the audit chain.</Empty>
+        <Empty title="Nothing drafted">Draft a playbook to populate the audit trail.</Empty>
       )}
 
       {playbook && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <Panel
+          <Card
             title={playbook.playbook_name}
-            subtitle={playbook.note}
-            actions={<Severity level={playbook.severity} />}
+            hint={playbook.note}
+            aside={<Severity level={playbook.severity} />}
             className="lg:col-span-2"
           >
             <ol className="space-y-2">
@@ -58,15 +58,15 @@ export default function ResponsePanel() {
                 const ran = executed.find((e) => e.step === step)
                 return (
                   <li key={i} className="flex items-start gap-2.5">
-                    <span className={`mono mt-px text-[11px] ${
+                    <span className={`font-mono mt-px text-[11px] ${
                       ran ? (ran.status === 'executed' ? 'text-good' : 'text-severity-medium')
-                          : 'text-content-faint'}`}>
+                          : 'text-ink-faint'}`}>
                       {String(i + 1).padStart(2, '0')}
                     </span>
                     <div className="min-w-0">
-                      <p className="text-[13px] text-content-muted">{step}</p>
+                      <p className="text-body text-ink-muted">{step}</p>
                       {ran && (
-                        <p className="mono mt-0.5 text-[11px] text-content-faint">
+                        <p className="font-mono tabular mt-0.5 text-meta text-ink-faint">
                           {ran.action} · blast {ran.blast_radius} · ledger #{ran.ledger_seq}
                           {ran.status !== 'executed' && (
                             <span className="text-severity-medium"> · held for approval</span>
@@ -74,7 +74,7 @@ export default function ResponsePanel() {
                         </p>
                       )}
                       {!ran && (
-                        <p className="mt-0.5 text-[11px] text-content-faint">
+                        <p className="mt-0.5 text-meta text-ink-faint">
                           no automated form — analyst work
                         </p>
                       )}
@@ -83,29 +83,29 @@ export default function ResponsePanel() {
                 )
               })}
             </ol>
-          </Panel>
+          </Card>
 
           <div className="space-y-4">
             {coverage && (
-              <Panel title="Automation coverage">
-                <Figure label="Executed autonomously" value={`${coverage.coverage_pct}%`} size="lg" />
+              <Card title="Automation coverage">
+                <Stat label="Executed autonomously" value={`${coverage.coverage_pct}%`} size="display" />
                 <div className="mt-3">
-                  <Row label="playbook steps">{coverage.playbook_steps}</Row>
-                  <Row label="ran autonomously">
+                  <DataRow label="playbook steps">{coverage.playbook_steps}</DataRow>
+                  <DataRow label="ran autonomously">
                     <span className="text-good">{coverage.executed_autonomously}</span>
-                  </Row>
-                  <Row label="held for a human">
+                  </DataRow>
+                  <DataRow label="held for a human">
                     <span className="text-severity-medium">{coverage.held_for_human_approval}</span>
-                  </Row>
-                  <Row label="no automated form">{coverage.manual_only}</Row>
+                  </DataRow>
+                  <DataRow label="no automated form">{coverage.manual_only}</DataRow>
                 </div>
-                <p className="mt-2 text-[11px] leading-relaxed text-content-faint">
+                <p className="mt-2 text-meta leading-relaxed text-ink-faint">
                   {coverage.definition}
                 </p>
-              </Panel>
+              </Card>
             )}
 
-            <Panel title="Actions taken">
+            <Card title="Actions taken">
               <div className="space-y-2">
                 {executed.map((action) => {
                   const held = action.status !== 'executed'
@@ -114,8 +114,8 @@ export default function ResponsePanel() {
                     <div key={action.ledger_seq} className="flex items-start gap-2">
                       <Icon size={13} className={held ? 'mt-0.5 text-severity-medium' : 'mt-0.5 text-good'} />
                       <div className="min-w-0">
-                        <div className="mono text-[12px] text-content">{action.action}</div>
-                        <div className="text-[11px] text-content-faint">{action.description}</div>
+                        <div className="font-mono tabular text-[12px] text-ink">{action.action}</div>
+                        <div className="text-meta text-ink-faint">{action.description}</div>
                         {held && (
                           <div className="text-[11px] text-severity-medium">{action.gate}</div>
                         )}
@@ -124,12 +124,12 @@ export default function ResponsePanel() {
                   )
                 })}
               </div>
-              <div className="mt-3 flex items-center gap-1.5 border-t border-ink-800 pt-2
-                text-[12px] text-content-faint">
+              <div className="mt-3 flex items-center gap-1.5 border-t border-line/60 pt-2
+                text-meta text-ink-faint">
                 <Clock size={12} /> estimated containment{' '}
-                <span className="mono text-content-muted">{playbook.estimated_containment_time}</span>
+                <span className="font-mono tabular text-ink-muted">{playbook.estimated_containment_time}</span>
               </div>
-            </Panel>
+            </Card>
           </div>
         </div>
       )}

@@ -1,104 +1,124 @@
 import ReactMarkdown from 'react-markdown'
-import { FlaskConical, BookOpen, Layers } from 'lucide-react'
+import { FlaskConical, BookOpen, Layers, ArrowUpRight, ArrowDownRight } from 'lucide-react'
 
-/* Shared primitives. Everything visual goes through these so the app has one voice
-   instead of fourteen accent colours. */
+/* Every visual decision lives here. Components compose these rather than inventing their own
+   colours, so the system stays consistent and is changed in one place. */
 
 export function Answer({ children }) {
-  // The model writes markdown. Rendering it as plain text put literal ** on the screen,
-  // which was the single most damaging detail in the old UI.
-  return <div className="prose-answer text-[13px]"><ReactMarkdown>{children || ''}</ReactMarkdown></div>
+  return <div className="answer"><ReactMarkdown>{children || ''}</ReactMarkdown></div>
 }
 
-export function Panel({ title, subtitle, actions, children, className = '' }) {
+export function Card({ title, hint, aside, children, className = '', bare = false }) {
   return (
-    <section className={`bg-ink-900 border border-ink-700 rounded-panel ${className}`}>
-      {(title || actions) && (
-        <header className="flex items-start justify-between gap-4 px-5 pt-4 pb-3">
-          <div>
-            {title && <h2 className="text-[13px] font-semibold text-content">{title}</h2>}
-            {subtitle && (
-              <p className="text-[12px] text-content-faint mt-0.5 max-w-2xl leading-relaxed">
-                {subtitle}
-              </p>
-            )}
+    <section className={`rounded-card border border-line bg-surface-1 ${className}`}>
+      {(title || aside) && (
+        <header className="flex items-start justify-between gap-4 px-5 pt-4">
+          <div className="min-w-0">
+            {title && <h2 className="text-title font-semibold text-ink">{title}</h2>}
+            {hint && <p className="mt-1 max-w-2xl text-meta text-ink-faint">{hint}</p>}
           </div>
-          {actions && <div className="shrink-0 flex items-center gap-2">{actions}</div>}
+          {aside && <div className="flex shrink-0 items-center gap-2">{aside}</div>}
         </header>
       )}
-      <div className="px-5 pb-5">{children}</div>
+      <div className={bare ? '' : 'px-5 pb-5 pt-4'}>{children}</div>
     </section>
   )
 }
 
-export function Figure({ label, value, note, tone = 'default', size = 'md' }) {
+/** Headline KPI. `delta` is only ever passed when there is a real before/after to show. */
+export function Stat({ label, value, unit, delta, deltaLabel, note, tone = 'default', size = 'figure' }) {
   const tones = {
-    default: 'text-content',
-    good: 'text-good',
-    bad: 'text-bad',
-    accent: 'text-accent',
-    muted: 'text-content-muted',
+    default: 'text-ink', good: 'text-good', bad: 'text-bad',
+    accent: 'text-accent', muted: 'text-ink-muted',
   }
-  const sizes = { sm: 'text-[15px]', md: 'text-[19px]', lg: 'text-[26px]' }
+  const rising = typeof delta === 'number' && delta > 0
+  const DeltaIcon = rising ? ArrowUpRight : ArrowDownRight
+
   return (
-    <div>
-      <div className="text-label uppercase text-content-faint">{label}</div>
-      <div className={`figure font-semibold mt-0.5 ${sizes[size]} ${tones[tone]}`}>{value}</div>
-      {note && <div className="text-[11px] text-content-faint mt-0.5 leading-snug">{note}</div>}
+    <div className="min-w-0">
+      <div className="text-label uppercase text-ink-faint">{label}</div>
+      <div className="mt-1.5 flex items-baseline gap-1.5">
+        <span className={`tabular font-semibold ${size === 'display' ? 'text-display' : 'text-figure'} ${tones[tone]}`}>
+          {value}
+        </span>
+        {unit && <span className="text-meta text-ink-faint">{unit}</span>}
+      </div>
+      {typeof delta === 'number' && delta !== 0 && (
+        <div className={`mt-1 flex items-center gap-1 text-meta ${rising ? 'text-good' : 'text-bad'}`}>
+          <DeltaIcon size={12} />
+          <span className="tabular">{rising ? '+' : ''}{delta}</span>
+          {deltaLabel && <span className="text-ink-faint">{deltaLabel}</span>}
+        </div>
+      )}
+      {note && <div className="mt-1 text-meta leading-snug text-ink-faint">{note}</div>}
     </div>
   )
 }
 
-export function Button({ children, onClick, disabled, variant = 'ghost', size = 'md', title }) {
+export function Button({ children, onClick, disabled, variant = 'quiet', size = 'md', title, active }) {
   const variants = {
     primary: 'bg-accent-soft border-accent-line text-accent hover:bg-accent/20',
-    ghost: 'bg-ink-800 border-ink-700 text-content-muted hover:text-content hover:border-ink-600',
+    quiet: 'bg-surface-2 border-line text-ink-muted hover:text-ink hover:border-line-strong',
     good: 'bg-good/10 border-good/30 text-good hover:bg-good/20',
     bad: 'bg-bad/10 border-bad/30 text-bad hover:bg-bad/20',
   }
-  const sizes = { sm: 'px-2.5 py-1 text-[12px]', md: 'px-3 py-1.5 text-[13px]' }
+  const sizes = { sm: 'px-2.5 py-1 text-meta', md: 'px-3.5 py-2 text-body' }
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className={`inline-flex items-center gap-1.5 rounded-md border transition-colors
-        disabled:opacity-40 disabled:cursor-not-allowed ${variants[variant]} ${sizes[size]}`}
-    >
+    <button onClick={onClick} disabled={disabled} title={title}
+      className={`inline-flex items-center gap-1.5 rounded-lg border font-medium transition-colors
+        disabled:cursor-not-allowed disabled:opacity-40
+        ${active ? variants.primary : variants[variant]} ${sizes[size]}`}>
       {children}
     </button>
   )
 }
 
-const SEVERITY = {
-  critical: 'text-severity-critical border-severity-critical/30 bg-severity-critical/10',
-  high: 'text-severity-high border-severity-high/30 bg-severity-high/10',
-  medium: 'text-severity-medium border-severity-medium/30 bg-severity-medium/10',
-  low: 'text-severity-low border-severity-low/30 bg-severity-low/10',
-  info: 'text-severity-info border-ink-600 bg-ink-800',
+const SEVERITY_STYLE = {
+  critical: 'text-severity-critical border-severity-critical/35 bg-severity-critical/10',
+  high: 'text-severity-high border-severity-high/35 bg-severity-high/10',
+  medium: 'text-severity-medium border-severity-medium/35 bg-severity-medium/10',
+  low: 'text-severity-low border-severity-low/35 bg-severity-low/10',
+  info: 'text-severity-info border-line-strong bg-surface-2',
 }
 
-export function Severity({ level = 'info' }) {
+export function Severity({ level = 'info', dot = false }) {
+  if (dot) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-meta text-ink-muted">
+        <span className="h-1.5 w-1.5 rounded-full" style={{ background: severityHex(level) }} />
+        {level}
+      </span>
+    )
+  }
   return (
-    <span className={`mono inline-block rounded border px-1.5 py-px text-[10px] uppercase
-      tracking-wider ${SEVERITY[level] || SEVERITY.info}`}>
-      {level}
-    </span>
+    <span className={`font-mono inline-block rounded border px-1.5 py-px text-[10px] uppercase
+      tracking-wider ${SEVERITY_STYLE[level] || SEVERITY_STYLE.info}`}>{level}</span>
   )
 }
 
 export function severityHex(level) {
   return {
-    critical: '#e5484d', high: '#ef8034', medium: '#d4a72c',
-    low: '#5b8def', info: '#6b7482',
-  }[level] || '#6b7482'
+    critical: '#f0616a', high: '#f08a3c', medium: '#e0b53c',
+    low: '#5b9ad6', info: '#697384',
+  }[level] || '#697384'
 }
+
+export const CHART_TOOLTIP = {
+  background: '#19202c',
+  border: '1px solid #2f3a4c',
+  borderRadius: 8,
+  fontSize: 12,
+  color: '#e8ecf2',
+  padding: '6px 10px',
+}
+export const GRID = '#232c3b'
+export const AXIS = { fill: '#697384', fontSize: 11 }
 
 const PROVENANCE = {
   measured: { icon: FlaskConical, label: 'measured', className: 'text-good border-good/30',
     hint: 'Produced by an evaluation script in this repository, or timed at request time' },
   cited: { icon: BookOpen, label: 'cited', className: 'text-accent border-accent-line',
-    hint: 'Published research, attributed. Not our measurement.' },
+    hint: 'Published research, attributed. Not our own measurement.' },
   illustrative: { icon: Layers, label: 'illustrative', className: 'text-severity-medium border-severity-medium/30',
     hint: 'A presentation layer over real data, not itself a measurement' },
 }
@@ -106,40 +126,58 @@ const PROVENANCE = {
 export function Provenance({ kind = 'measured' }) {
   const { icon: Icon, label, className, hint } = PROVENANCE[kind] || PROVENANCE.measured
   return (
-    <span title={hint}
-      className={`mono inline-flex items-center gap-1 rounded border px-1.5 py-px
-        text-[10px] uppercase tracking-wider ${className}`}>
+    <span title={hint} className={`font-mono inline-flex items-center gap-1 rounded border
+      px-1.5 py-px text-[10px] uppercase tracking-wider ${className}`}>
       <Icon size={9} />{label}
     </span>
   )
 }
 
-export function Empty({ children }) {
+export function Mono({ children, className = '' }) {
+  return <span className={`font-mono tabular text-ink-muted ${className}`}>{children}</span>
+}
+
+export function Empty({ title, children }) {
   return (
-    <div className="border border-dashed border-ink-700 rounded-panel px-5 py-8 text-center
-      text-[13px] text-content-faint">
-      {children}
+    <div className="rounded-lg border border-dashed border-line px-5 py-10 text-center">
+      {title && <div className="text-body font-medium text-ink-muted">{title}</div>}
+      {children && <div className="mt-1 text-meta text-ink-faint">{children}</div>}
     </div>
   )
 }
 
-export function Loading({ children = 'Loading' }) {
-  return <div className="px-5 py-10 text-center text-[13px] text-content-faint">{children}</div>
+export function Loading({ children = 'Working' }) {
+  return (
+    <div className="flex items-center justify-center gap-2 px-5 py-16 text-body text-ink-faint">
+      <span className="breathe h-1.5 w-1.5 rounded-full bg-accent" />
+      {children}
+    </div>
+  )
 }
 
 export function Failed({ children }) {
   return (
-    <div className="border border-bad/30 bg-bad/5 rounded-panel px-5 py-4 text-[13px] text-bad">
+    <div className="rounded-card border border-bad/30 bg-bad/5 px-5 py-4 text-body text-bad">
       {children}
     </div>
   )
 }
 
-export function Row({ label, children }) {
+export function DataRow({ label, children, tone }) {
+  const tones = { good: 'text-good', bad: 'text-bad', default: 'text-ink-muted' }
   return (
-    <div className="flex items-baseline justify-between gap-4 py-1.5 border-b border-ink-800 last:border-0">
-      <span className="text-[12px] text-content-faint">{label}</span>
-      <span className="mono text-[12px] text-content-muted text-right">{children}</span>
+    <div className="flex items-baseline justify-between gap-4 border-b border-line/60 py-1.5 last:border-0">
+      <span className="text-meta text-ink-faint">{label}</span>
+      <span className={`font-mono tabular text-meta ${tones[tone] || tones.default}`}>{children}</span>
+    </div>
+  )
+}
+
+export function SectionTitle({ children, hint }) {
+  return (
+    <div className="mb-3">
+      <h2 className="text-title font-semibold text-ink">{children}</h2>
+      {hint && <p className="mt-1 max-w-3xl text-meta text-ink-faint">{hint}</p>}
     </div>
   )
 }

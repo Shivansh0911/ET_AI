@@ -1,49 +1,65 @@
 /** @type {import('tailwindcss').Config} */
 
-// One palette, one meaning per colour. The previous build used 14 accent shades with emerald
-// simultaneously meaning "info", "healthy", "measured", "intact", "correct" and every primary
-// button — which is the same as meaning nothing.
+// CyberSentinel design system.
 //
-//   ink      surfaces, in four steps of depth
-//   accent   interactive affordances only. Never used to signal state.
-//   severity one ordered ramp, used for nothing but severity
-//   good/bad verification and verdict outcomes only
+// Surfaces are layered slate, never pure black — analysts work long shifts in low light, and
+// #000 gives you no way to show elevation. Depth comes from surface lightness, not shadow.
+//
+// Colour carries meaning or it does not appear. One accent (indigo) for interaction and focus
+// only; the severity ramp for severity only; good/bad for verification outcomes only. Nothing
+// is coloured because it looked nice.
 export default {
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
       colors: {
-        ink: {
-          950: '#08090b',   // page
-          900: '#0e1013',   // panel
-          800: '#151920',   // raised panel / hover
-          700: '#1e232c',   // borders
-          600: '#2b323d',   // strong borders
+        // Elevation, darkest to lightest. Higher number reads as closer to the viewer.
+        surface: {
+          0: '#0c1017',   // app background
+          1: '#121722',   // cards
+          2: '#19202c',   // raised elements inside cards, hover
+          3: '#212a38',   // inputs, chips
         },
-        content: {
-          DEFAULT: '#e7e9ec',
-          muted: '#98a1ae',
-          faint: '#6b7482',
+        line: {
+          DEFAULT: '#232c3b',  // standard divider
+          strong: '#2f3a4c',   // emphasised edge
+        },
+        ink: {
+          DEFAULT: '#e8ecf2',  // primary text — off-white, not #fff
+          muted: '#9aa5b6',    // secondary
+          faint: '#697384',    // tertiary, labels
         },
         accent: {
-          DEFAULT: '#5b8def',
-          soft: 'rgba(91, 141, 239, 0.12)',
-          line: 'rgba(91, 141, 239, 0.32)',
+          DEFAULT: '#6d8cf5',
+          hover: '#8199f7',
+          soft: 'rgba(109, 140, 245, 0.12)',
+          line: 'rgba(109, 140, 245, 0.35)',
         },
         severity: {
-          critical: '#e5484d',
-          high: '#ef8034',
-          medium: '#d4a72c',
-          low: '#5b8def',
-          info: '#6b7482',
+          critical: '#f0616a',
+          high: '#f08a3c',
+          medium: '#e0b53c',
+          low: '#5b9ad6',
+          info: '#697384',
         },
-        good: '#30a46c',
-        bad: '#e5484d',
+        good: '#3fb47f',
+        bad: '#f0616a',
+      },
+      fontFamily: {
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       fontSize: {
-        label: ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.06em' }],
+        // A deliberate scale. Labels are small and letter-spaced; figures are large and tight.
+        label: ['0.6875rem', { lineHeight: '1rem', letterSpacing: '0.07em' }],
+        meta: ['0.75rem', { lineHeight: '1.15rem' }],
+        body: ['0.8125rem', { lineHeight: '1.5rem' }],
+        title: ['0.9375rem', { lineHeight: '1.4rem', letterSpacing: '-0.01em' }],
+        figure: ['1.75rem', { lineHeight: '2rem', letterSpacing: '-0.03em' }],
+        display: ['2.25rem', { lineHeight: '2.4rem', letterSpacing: '-0.035em' }],
       },
-      borderRadius: { panel: '0.625rem' },
+      borderRadius: { card: '0.75rem' },
+      spacing: { 4.5: '1.125rem' },
     },
   },
   plugins: [],

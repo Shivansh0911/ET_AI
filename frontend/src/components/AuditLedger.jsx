@@ -49,8 +49,8 @@ export default function AuditLedger() {
     <div className="space-y-4">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-[15px] font-semibold text-content">Audit</h1>
-          <p className="mt-0.5 max-w-2xl text-[12px] leading-relaxed text-content-faint">
+          <h1 className="text-title font-semibold text-ink">Audit</h1>
+          <p className="mt-0.5 max-w-2xl text-meta leading-relaxed text-ink-faint">
             Every automated action, sealed with the SHA-256 of the entry before it. Altering any
             record breaks every hash that follows, which is what makes this auditable rather than
             merely logged.
@@ -66,62 +66,62 @@ export default function AuditLedger() {
           ['Held for a human', audit.stats.held_for_human_approval],
           ['Chain head', (audit.verification.head || '').slice(0, 10) || '—'],
         ].map(([label, value]) => (
-          <div key={label} className="rounded-panel border border-ink-700 bg-ink-900 p-4">
-            <div className="text-label uppercase text-content-faint">{label}</div>
-            <div className="figure mt-0.5 text-[19px] font-semibold text-content">{value}</div>
+          <div key={label} className="rounded-card border border-line bg-surface-1 p-4">
+            <div className="text-label uppercase text-ink-faint">{label}</div>
+            <div className="tabular mt-0.5 text-tabular font-semibold text-ink">{value}</div>
           </div>
         ))}
       </div>
 
-      <div className="rounded-panel border border-ink-700 bg-ink-900 p-5">
+      <div className="rounded-card border border-line bg-surface-1 p-5">
         <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-          <h3 className="text-[13px] font-semibold text-content">Tamper detection</h3>
+          <h3 className="text-title font-semibold text-ink">Tamper detection</h3>
           <button
             onClick={handleTamper}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-md border border-ink-700 bg-ink-800 px-2.5 py-1 text-[12px] text-content-muted transition-colors hover:border-bad/40 hover:text-content disabled:opacity-40"
+            className="inline-flex items-center gap-1.5 rounded-md border border-line bg-surface-2 px-2.5 py-1 text-meta text-ink-muted transition-colors hover:border-bad/40 hover:text-ink disabled:opacity-40"
           >
             <FlaskConical size={13} />
             {busy ? 'Running...' : 'Simulate tampering'}
           </button>
         </div>
         {!tamper && (
-          <p className="text-[12px] leading-relaxed text-content-faint">
+          <p className="text-meta leading-relaxed text-ink-faint">
             Runs verification against a modified copy of the chain. The live ledger is never touched.
           </p>
         )}
         {tamper && tamper.available === false && (
-          <p className="text-[12px] text-content-faint">{tamper.reason}</p>
+          <p className="text-meta text-ink-faint">{tamper.reason}</p>
         )}
         {tamper?.available !== false && tamper && (
           <div className="space-y-2 text-[12px]">
-            <p className="text-content-muted">
-              Entry <span className="mono text-content">#{tamper.altered_entry}</span> had its{' '}
-              <span className="mono text-content">{tamper.field}</span> changed from{' '}
-              <span className="mono text-content">{tamper.from}</span> to{' '}
-              <span className="mono text-bad">{tamper.to}</span> on a copy.
+            <p className="text-ink-muted">
+              Entry <span className="font-mono tabular text-ink">#{tamper.altered_entry}</span> had its{' '}
+              <span className="font-mono tabular text-ink">{tamper.field}</span> changed from{' '}
+              <span className="font-mono tabular text-ink">{tamper.from}</span> to{' '}
+              <span className="font-mono tabular text-bad">{tamper.to}</span> on a copy.
             </p>
             <div className="flex items-center gap-3 flex-wrap">
               <IntegrityBadge verification={tamper.verification_before} />
-              <span className="text-content-faint">→</span>
+              <span className="text-ink-faint">→</span>
               <IntegrityBadge verification={tamper.verification_after} />
             </div>
-            <p className="text-content-faint">{tamper.verification_after.reason}</p>
+            <p className="text-ink-faint">{tamper.verification_after.reason}</p>
           </div>
         )}
       </div>
 
-      <div className="rounded-panel border border-ink-700 bg-ink-900 p-5">
-        <h3 className="mb-3 text-[13px] font-semibold text-content">Chain — newest first</h3>
+      <div className="rounded-card border border-line bg-surface-1 p-5">
+        <h3 className="mb-3 text-title font-semibold text-ink">Chain — newest first</h3>
         {entries.length === 0 ? (
-          <p className="text-[12px] text-content-faint">
+          <p className="text-meta text-ink-faint">
             No actions recorded yet. Generate a playbook on the Response tab to populate the chain.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-[12px]">
               <thead>
-                <tr className="border-b border-ink-700 text-content-faint">
+                <tr className="border-b border-line text-ink-faint">
                   <th className="text-left font-medium py-1.5">#</th>
                   <th className="text-left font-medium">Action</th>
                   <th className="text-left font-medium">Target</th>
@@ -130,18 +130,18 @@ export default function AuditLedger() {
                   <th className="text-left font-medium pl-3">Hash</th>
                 </tr>
               </thead>
-              <tbody className="mono">
+              <tbody className="font-mono tabular">
                 {entries.map((e) => (
-                  <tr key={e.seq} className="border-b border-ink-800">
-                    <td className="py-1.5 text-content-faint">{e.seq}</td>
-                    <td className="text-content-muted">{e.action}</td>
-                    <td className="text-content-faint">{e.target}</td>
+                  <tr key={e.seq} className="border-b border-line/60">
+                    <td className="py-1.5 text-ink-faint">{e.seq}</td>
+                    <td className="text-ink-muted">{e.action}</td>
+                    <td className="text-ink-faint">{e.target}</td>
                     <td className={e.result === 'executed' ? 'text-good' : 'text-severity-medium'}>
                       {e.result}
                     </td>
-                    <td className="text-right text-content-faint">{e.blast_radius}</td>
-                    <td className="flex items-center gap-1 pl-3 text-content-faint">
-                      <Link2 size={10} className="text-ink-600" />
+                    <td className="text-right text-ink-faint">{e.blast_radius}</td>
+                    <td className="flex items-center gap-1 pl-3 text-ink-faint">
+                      <Link2 size={10} className="text-line-strong" />
                       {e.hash.slice(0, 12)}
                     </td>
                   </tr>
@@ -150,7 +150,7 @@ export default function AuditLedger() {
             </table>
           </div>
         )}
-        <p className="mt-3 text-[11px] leading-relaxed text-content-faint">{audit.stats.persistence_caveat}</p>
+        <p className="mt-3 text-meta leading-relaxed text-ink-faint">{audit.stats.persistence_caveat}</p>
       </div>
     </div>
   )
