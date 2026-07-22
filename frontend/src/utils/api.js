@@ -39,6 +39,7 @@ export const api = {
   getGraph: () => request('/api/graph'),
   getRemediation: () => request('/api/remediation'),
   getActor: () => request('/api/actor'),
+  getTwin: (entry, harden = []) => request(`/api/twin?entry=${encodeURIComponent(entry)}` + harden.map((h) => `&harden=${encodeURIComponent(h)}`).join('')),
   getAttribution: (limit = 12) => request(`/api/attribution?limit=${limit}`),
   getAudit: (limit = 100) => request(`/api/audit?limit=${limit}`),
   getFeedback: () => request('/api/feedback'),

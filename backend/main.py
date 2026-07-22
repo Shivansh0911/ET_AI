@@ -18,7 +18,7 @@ from agents.attack_mapper import build_kill_chain, predict_next_move
 from agents.copilot import chat_with_copilot
 from agents.response_orchestrator import generate_playbook
 from agents.threat_intel import search_threat_intel
-from engine import actor, attribution, feedback, fusion, graph, ingest, ledger, ot, replay, vuln
+from engine import actor, attribution, feedback, fusion, graph, ingest, ledger, ot, replay, twin, vuln
 from engine.assets import ASSETS, PROVENANCE
 from engine.metrics_registry import attribution as attribution_metrics
 from engine.metrics_registry import continual as metrics_continual
@@ -237,6 +237,17 @@ def ingest_coverage():
     The honest answer to "could you deploy this?" — a number rather than a shrug.
     """
     return ingest.coverage()
+
+
+@app.get("/api/twin")
+def get_twin(entry: str = Query("CBSE-Digital", max_length=32),
+             harden: List[str] = Query(default=[])):
+    """Digital twin: blast radius from an entry asset, the top chokepoint, and a what-if delta.
+
+    Real exposure and CVE pressure over a simulated inter-asset topology. Touches no live
+    system — that is the point of a twin.
+    """
+    return twin.simulate(entry, harden=[h[:32] for h in harden[:8]], detections=_detections)
 
 
 @app.get("/api/actor")

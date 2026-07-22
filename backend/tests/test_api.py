@@ -391,3 +391,29 @@ def test_predicted_next_excludes_observed(client):
     observed = set(r["observed"])
     for p in r["predicted_next"]:
         assert p["technique"] not in observed, "a prediction must be a technique not yet seen"
+
+
+# ─── digital twin (Innovation: attack-path simulation) ───
+
+def test_twin_blast_radius_shrinks_when_chokepoint_hardened(client):
+    base = client.get("/api/twin", params={"entry": "CBSE-Digital"}).json()
+    assert 0 <= base["blast_radius"] <= len(base["entry_points"])
+    choke = base.get("chokepoint")
+    if not choke or choke["reduction"] <= 0:
+        pytest.skip("no reducing chokepoint from this entry")
+    hardened = client.get("/api/twin", params={"entry": "CBSE-Digital",
+                                               "harden": choke["asset"]}).json()
+    assert hardened["blast_radius"] <= base["blast_radius"], \
+        "hardening the chokepoint must not increase the blast radius"
+    assert hardened["blast_radius"] == choke["blast_after"]
+
+
+def test_twin_labels_topology_simulated(client):
+    r = client.get("/api/twin").json()
+    assert "simulated" in r["provenance"]["simulated"].lower()
+    assert "real" in r["provenance"]
+
+
+def test_twin_entry_is_never_in_its_own_blast_radius(client):
+    r = client.get("/api/twin", params={"entry": "NIC-GOV"}).json()
+    assert all(x["asset"] != "NIC-GOV" for x in r["reachable"])
