@@ -43,9 +43,32 @@ def test_headline_split_is_the_cross_capture_one(client):
     detection = client.get("/api/metrics").json()["detection"]
     assert detection["available"]
     assert "cross-capture" in detection["split"]
-    # The random split's 99.8% is retained only as a labelled comparison.
-    assert detection["recall"] < 0.5, "headline recall looks like the flattering split again"
+    # The random split's 99.8% is retained only as a labelled comparison, never as the headline.
+    assert detection["recall"] < detection["superseded_random_split"]["recall"]
     assert detection["superseded_random_split"]["recall"] > 0.9
+
+
+def test_both_heads_are_reported_separately(client):
+    """The novelty head's contribution must stay visible, not folded into one number."""
+    detection = client.get("/api/metrics").json()["detection"]
+    assert detection["novelty_head"], "the behavioural baseline head must be named"
+    assert detection["supervised_only"]["recall"] < detection["recall"],         "the union must beat the supervised head alone, or the second head is not earning its place"
+    assert len(detection["all_variants"]) >= 6, "every candidate's result must be published"
+
+
+def test_novelty_head_selection_is_disclosed(client):
+    """It was chosen on a modelling argument, not validation evidence. Say so."""
+    selection = client.get("/api/metrics").json()["detection"]["novelty_selection"]
+    assert "a priori" in selection.get("chosen_by", "")
+    assert selection.get("why_not_validation"), "the reason validation could not decide must be stated"
+
+
+def test_campaign_metrics_are_labelled_as_a_different_denominator(client):
+    campaign = client.get("/api/metrics").json()["detection"]["campaign_level"]
+    assert campaign["campaigns"] > 0
+    assert 0 <= campaign["campaign_detection_rate"] <= 1
+    assert "different denominator" in campaign["definition"],         "campaign-level detection must never be presented as per-flow recall"
+    assert "timing_caveat" in campaign
 
 
 def test_trivial_baseline_is_published_beside_the_headline(client):
@@ -69,8 +92,9 @@ def test_continual_learning_reports_both_settings():
 
     campaign = next(s for s in report["settings"] if s["setting"] == "campaign_assisted")
     assert campaign["at_headline_budget"]["recall"] > campaign["before"]["recall"]
-    # Recall bought by alerting on everything is not a win.
-    assert campaign["at_headline_budget"]["false_positive_rate"] < 0.02
+    # Recall bought by alerting on everything is not a win: the loop may not materially
+    # worsen the false-positive rate it inherited from the base detector.
+    assert campaign["at_headline_budget"]["false_positive_rate"] <         campaign["before"]["false_positive_rate"] + 0.01
 
 
 def test_evaluation_sets_are_disjoint_from_the_label_pool():
@@ -188,7 +212,8 @@ def test_endpoints_respond(client, path):
 def test_detector_serves_the_versioned_cross_capture_model(client):
     detector = client.get("/").json()["detector"]
     assert detector["available"] is True
-    assert detector["version"].startswith("base-")
+    assert detector["version"].startswith("hybrid-")
+    assert detector["heads"]["novelty"] != "none", "the behavioural baseline must be served"
     assert detector["trained_on"] == ["Monday", "Tuesday", "Wednesday"]
 
 

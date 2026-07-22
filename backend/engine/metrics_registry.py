@@ -61,11 +61,21 @@ def detection() -> dict:
         "f1": cross["f1"],
         "false_positive_rate": cross["false_positive_rate"],
         "false_negative_rate": cross["false_negative_rate"],
-        "roc_auc": cross.get("roc_auc"),
+        "roc_auc": cross.get("roc_auc") or cross.get("roc_auc_supervised"),
         "test_rows": cross["rows"],
         "test_attack_rows": cross["tp"] + cross["fn"],
         "test_benign_rows": cross["tn"] + cross["fp"],
         "confusion": {k: cross[k] for k in ("tp", "fp", "tn", "fn")},
+        "alerts_per_1000_flows": cross.get("alerts_per_1000_flows"),
+        "architecture": report.get("architecture"),
+        "false_positive_budget": report.get("fpr_budget"),
+        # Campaign-level detection is a DIFFERENT denominator from per-flow recall and is
+        # labelled as such everywhere it is displayed.
+        "campaign_level": report.get("campaign_level", {}),
+        "supervised_only": report.get("supervised_only", {}),
+        "novelty_head": report.get("novelty_head_chosen"),
+        "novelty_selection": report.get("novelty_selection", {}),
+        "all_variants": report.get("all_variants", {}),
         "per_family_detection_rate": {
             name: {"n": stat["n"], "detected": round(stat["n"] * stat["recall"]),
                    "rate": stat["recall"]}

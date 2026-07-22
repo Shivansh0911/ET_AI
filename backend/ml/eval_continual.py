@@ -50,6 +50,10 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import cross_val_predict
 
 BACKEND = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(BACKEND))
+
+from engine import detector  # noqa: E402
+
 PROCESSED = BACKEND / "data" / "processed"
 ARTIFACTS = Path(__file__).resolve().parent / "artifacts"
 METRICS = BACKEND / "metrics"
@@ -249,12 +253,15 @@ def main() -> int:
     print(f"Base model {bundle['version']}, trained on {', '.join(bundle['trained_on'])}")
 
     X_raw, y, families, day = load_stream(mask)
-    X = bundle["scaler"].transform(X_raw)
-    del X_raw
 
     print(f"Deployment stream: {len(y):,} flows ({int(y.sum()):,} attack)")
-    print("Scoring once with the frozen base model...")
-    base_probability = bundle["model"].predict_proba(X)[:, 1]
+    print("Scoring once with the frozen base detector (both heads)...")
+    # The base score is now the two-headed served score, so the loop is measured against the
+    # detector that actually ships rather than against the supervised head alone.
+    base_probability = np.concatenate([
+        detector.score(X_raw[i:i + 200_000]) for i in range(0, len(X_raw), 200_000)])
+    X = bundle["scaler"].transform(X_raw)
+    del X_raw
 
     # Stacking: the adaptive layer sees the base model's own score, so it can learn precisely
     # where the base model is wrong instead of relearning the whole problem from 500 examples.

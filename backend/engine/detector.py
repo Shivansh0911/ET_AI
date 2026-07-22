@@ -1,10 +1,19 @@
 """
-Runtime inference for the intrusion detector trained by ml/train_detector.py.
+Runtime inference for the two-headed detector trained by ml/train_hybrid.py.
 
-This module is the replacement for the old passthrough. It never reads a label: the only
-inputs are the flow's numeric features, and the only output is the model's probability. If
-the artifact is missing the API degrades to an explicit "detector unavailable" state rather
-than silently pretending to detect, which is the failure mode this rebuild exists to remove.
+Two models score every flow. The supervised head recognises attack families it was trained
+on; the novelty head, fitted on benign traffic alone, scores how far a flow sits from normal
+and therefore needs no knowledge of the attack at all. A flow alerts if either head fires.
+
+Both heads have their own calibrated threshold, chosen on a validation split carved from the
+training days. To keep one number on screen and one decision boundary everywhere downstream,
+each head's raw score is mapped onto [0, 1] such that ITS OWN threshold lands exactly at 0.5,
+and the served score is the higher of the two. So `score() >= 0.5` means "something fired",
+whichever head it was, and `explain()` says which.
+
+Never reads a label: the only inputs are numeric features. If the artifact is missing the API
+degrades to an explicit "detector unavailable" state rather than silently pretending to
+detect, which is the failure mode this rebuild exists to remove.
 """
 from __future__ import annotations
 
@@ -55,6 +64,11 @@ def status() -> dict:
         "threshold": bundle["threshold"],
         "version": bundle.get("version", "unversioned"),
         "trained_on": bundle.get("trained_on", []),
+        "heads": {
+            "supervised": type(bundle["model"]).__name__,
+            "novelty": bundle.get("novelty_name", "none"),
+        },
+        "false_positive_budget": bundle.get("fpr_budget"),
     }
 
 
@@ -63,20 +77,66 @@ def feature_names() -> list[str]:
     return list(bundle["features"]) if bundle else []
 
 
-def score(vectors: Sequence[Sequence[float]] | np.ndarray) -> np.ndarray:
-    """Return P(attack) for each already-masked feature vector."""
-    bundle = _load()
-    if bundle is None:
-        raise RuntimeError(f"detector artifact unavailable: {_load_error}")
-
+def _as_matrix(vectors, bundle) -> np.ndarray:
     matrix = np.asarray(vectors, dtype=np.float32)
     if matrix.ndim == 1:
         matrix = matrix.reshape(1, -1)
     expected = len(bundle["features"])
     if matrix.shape[1] != expected:
         raise ValueError(f"expected {expected} features, got {matrix.shape[1]}")
+    return matrix
 
-    return bundle["model"].predict_proba(bundle["scaler"].transform(matrix))[:, 1]
+
+def _rescale(raw: np.ndarray, threshold: float, ceiling: float) -> np.ndarray:
+    """Map a head's raw score onto [0, 1] with its own threshold pinned at 0.5."""
+    span_low = max(threshold, 1e-9)
+    span_high = max(ceiling - threshold, 1e-9)
+    below = 0.5 * np.clip(raw / span_low, 0, 1)
+    above = 0.5 + 0.5 * np.clip((raw - threshold) / span_high, 0, 1)
+    return np.where(raw < threshold, below, above)
+
+
+def heads(vectors) -> dict:
+    """Both heads' contributions, on the same 0-1 scale. Used by score() and explain()."""
+    bundle = _load()
+    if bundle is None:
+        raise RuntimeError(f"detector artifact unavailable: {_load_error}")
+    matrix = _as_matrix(vectors, bundle)
+
+    supervised_raw = bundle["model"].predict_proba(bundle["scaler"].transform(matrix))[:, 1]
+    supervised = _rescale(supervised_raw, bundle["supervised_threshold"], 1.0)
+
+    novelty_model = bundle.get("novelty")
+    if novelty_model is None:
+        return {"supervised": supervised, "novelty": np.zeros_like(supervised),
+                "novelty_raw": np.zeros_like(supervised), "supervised_raw": supervised_raw}
+
+    novelty_raw = novelty_model.score(matrix)
+    novelty = _rescale(novelty_raw, bundle["novelty_threshold"], bundle["novelty_ceiling"])
+    return {"supervised": supervised, "novelty": novelty,
+            "supervised_raw": supervised_raw, "novelty_raw": novelty_raw}
+
+
+def score(vectors: Sequence[Sequence[float]] | np.ndarray) -> np.ndarray:
+    """Served score in [0, 1]. 0.5 is the decision boundary for whichever head fired."""
+    both = heads(vectors)
+    return np.maximum(both["supervised"], both["novelty"])
+
+
+def explain(vector) -> dict:
+    """Which head is responsible for a given flow's score."""
+    both = heads([vector] if np.asarray(vector).ndim == 1 else vector)
+    supervised = float(both["supervised"][0])
+    novelty = float(both["novelty"][0])
+    return {
+        "supervised": round(supervised, 4),
+        "novelty": round(novelty, 4),
+        "fired": ("both" if supervised >= 0.5 and novelty >= 0.5
+                  else "supervised" if supervised >= 0.5
+                  else "novelty" if novelty >= 0.5 else "neither"),
+        "explanation": ("recognised as a known attack pattern" if supervised >= novelty
+                        else "unlike the learned profile of normal traffic"),
+    }
 
 
 def version() -> str:

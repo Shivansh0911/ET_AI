@@ -1,6 +1,6 @@
 {
   "question": "Does learning from analyst verdicts beat the frozen detector on captures it was never trained on?",
-  "base_model_version": "base-596ec4de4352",
+  "base_model_version": "hybrid-a6d2618c9257",
   "method": "RandomForest(depth 14) refitted on all accumulated analyst labels after each batch, taking the base model's probability as an extra feature; its alert cutoff is calibrated out-of-fold to a 1% false-positive budget. Served score fires if the base model fires OR the adaptive layer clears that cutoff. Labels acquired by 70% uncertainty sampling and 30% random audit, in batches of 100.",
   "headline_label_budget": 500,
   "full_label_budget": 1000,
@@ -26,516 +26,516 @@
     {
       "setting": "campaign_assisted",
       "description": "Reviewable pool and evaluation set are a random partition of the same Thu/Fri period. Confirming one alert lets the model catch the rest of that campaign \u2014 real operational value, and the generous reading, since near-duplicate flows from one burst can fall on both sides.",
-      "adaptive_cutoff": 0.599,
+      "adaptive_cutoff": 0.632,
       "pool_flows": 404926,
       "evaluation_flows": 607391,
       "label_budget": 1000,
       "labels_as_share_of_pool": 0.00247,
       "before": {
         "labels": 0,
-        "precision": 0.991804,
-        "recall": 0.365942,
-        "f1": 0.534626,
-        "false_positive_rate": 0.000855,
-        "false_negative_rate": 0.634058,
+        "precision": 0.827393,
+        "recall": 0.796125,
+        "f1": 0.811458,
+        "false_positive_rate": 0.046976,
+        "false_negative_rate": 0.203875,
         "confusion": {
-          "tp": 49007,
-          "fp": 405,
-          "tn": 473066,
-          "fn": 84913
+          "tp": 106617,
+          "fp": 22242,
+          "tn": 451229,
+          "fn": 27303
         }
       },
       "at_headline_budget": {
         "labels": 500,
-        "precision": 0.985887,
-        "recall": 0.987933,
-        "f1": 0.986909,
-        "false_positive_rate": 0.004,
-        "false_negative_rate": 0.012067,
+        "precision": 0.853025,
+        "recall": 0.990285,
+        "f1": 0.916545,
+        "false_positive_rate": 0.048261,
+        "false_negative_rate": 0.009715,
         "confusion": {
-          "tp": 132304,
-          "fp": 1894,
-          "tn": 471577,
-          "fn": 1616
+          "tp": 132619,
+          "fp": 22850,
+          "tn": 450621,
+          "fn": 1301
         }
       },
       "after": {
         "labels": 1000,
-        "precision": 0.988217,
-        "recall": 0.988262,
-        "f1": 0.98824,
-        "false_positive_rate": 0.003333,
-        "false_negative_rate": 0.011738,
+        "precision": 0.853016,
+        "recall": 0.990599,
+        "f1": 0.916674,
+        "false_positive_rate": 0.04828,
+        "false_negative_rate": 0.009401,
         "confusion": {
-          "tp": 132348,
-          "fp": 1578,
-          "tn": 471893,
-          "fn": 1572
+          "tp": 132661,
+          "fp": 22859,
+          "tn": 450612,
+          "fn": 1259
         }
       },
       "delta_at_headline": {
-        "recall": 0.621991,
-        "false_positive_rate": 0.003145
+        "recall": 0.19416,
+        "false_positive_rate": 0.001285
       },
       "learning_curve": [
         {
           "labels": 0,
-          "precision": 0.991804,
-          "recall": 0.365942,
-          "f1": 0.534626,
-          "false_positive_rate": 0.000855,
-          "false_negative_rate": 0.634058,
+          "precision": 0.827393,
+          "recall": 0.796125,
+          "f1": 0.811458,
+          "false_positive_rate": 0.046976,
+          "false_negative_rate": 0.203875,
           "confusion": {
-            "tp": 49007,
-            "fp": 405,
-            "tn": 473066,
-            "fn": 84913
+            "tp": 106617,
+            "fp": 22242,
+            "tn": 451229,
+            "fn": 27303
           }
         },
         {
           "labels": 100,
-          "precision": 0.988914,
-          "recall": 0.470938,
-          "f1": 0.638033,
-          "false_positive_rate": 0.001493,
-          "false_negative_rate": 0.529062,
+          "precision": 0.850294,
+          "recall": 0.965203,
+          "f1": 0.904112,
+          "false_positive_rate": 0.048066,
+          "false_negative_rate": 0.034797,
           "confusion": {
-            "tp": 63068,
-            "fp": 707,
-            "tn": 472764,
-            "fn": 70852
+            "tp": 129260,
+            "fp": 22758,
+            "tn": 450713,
+            "fn": 4660
           }
         },
         {
           "labels": 200,
-          "precision": 0.989739,
-          "recall": 0.880167,
-          "f1": 0.931743,
-          "false_positive_rate": 0.002581,
-          "false_negative_rate": 0.119833,
+          "precision": 0.853241,
+          "recall": 0.990255,
+          "f1": 0.916657,
+          "false_positive_rate": 0.048176,
+          "false_negative_rate": 0.009745,
           "confusion": {
-            "tp": 117872,
-            "fp": 1222,
-            "tn": 472249,
-            "fn": 16048
+            "tp": 132615,
+            "fp": 22810,
+            "tn": 450661,
+            "fn": 1305
           }
         },
         {
           "labels": 300,
-          "precision": 0.978046,
-          "recall": 0.983027,
-          "f1": 0.98053,
-          "false_positive_rate": 0.006241,
-          "false_negative_rate": 0.016973,
+          "precision": 0.853225,
+          "recall": 0.990255,
+          "f1": 0.916647,
+          "false_positive_rate": 0.048182,
+          "false_negative_rate": 0.009745,
           "confusion": {
-            "tp": 131647,
-            "fp": 2955,
-            "tn": 470516,
-            "fn": 2273
+            "tp": 132615,
+            "fp": 22813,
+            "tn": 450658,
+            "fn": 1305
           }
         },
         {
           "labels": 400,
-          "precision": 0.984645,
-          "recall": 0.982064,
-          "f1": 0.983353,
-          "false_positive_rate": 0.004332,
-          "false_negative_rate": 0.017936,
+          "precision": 0.853246,
+          "recall": 0.990211,
+          "f1": 0.91664,
+          "false_positive_rate": 0.048172,
+          "false_negative_rate": 0.009789,
           "confusion": {
-            "tp": 131518,
-            "fp": 2051,
-            "tn": 471420,
-            "fn": 2402
+            "tp": 132609,
+            "fp": 22808,
+            "tn": 450663,
+            "fn": 1311
           }
         },
         {
           "labels": 500,
-          "precision": 0.985887,
-          "recall": 0.987933,
-          "f1": 0.986909,
-          "false_positive_rate": 0.004,
-          "false_negative_rate": 0.012067,
+          "precision": 0.853025,
+          "recall": 0.990285,
+          "f1": 0.916545,
+          "false_positive_rate": 0.048261,
+          "false_negative_rate": 0.009715,
           "confusion": {
-            "tp": 132304,
-            "fp": 1894,
-            "tn": 471577,
-            "fn": 1616
+            "tp": 132619,
+            "fp": 22850,
+            "tn": 450621,
+            "fn": 1301
           }
         },
         {
           "labels": 600,
-          "precision": 0.989572,
-          "recall": 0.987074,
-          "f1": 0.988322,
-          "false_positive_rate": 0.002942,
-          "false_negative_rate": 0.012926,
+          "precision": 0.853236,
+          "recall": 0.990255,
+          "f1": 0.916653,
+          "false_positive_rate": 0.048178,
+          "false_negative_rate": 0.009745,
           "confusion": {
-            "tp": 132189,
-            "fp": 1393,
-            "tn": 472078,
-            "fn": 1731
+            "tp": 132615,
+            "fp": 22811,
+            "tn": 450660,
+            "fn": 1305
           }
         },
         {
           "labels": 700,
-          "precision": 0.989339,
-          "recall": 0.983326,
-          "f1": 0.986323,
-          "false_positive_rate": 0.002997,
-          "false_negative_rate": 0.016674,
+          "precision": 0.85239,
+          "recall": 0.991069,
+          "f1": 0.916514,
+          "false_positive_rate": 0.048544,
+          "false_negative_rate": 0.008931,
           "confusion": {
-            "tp": 131687,
-            "fp": 1419,
-            "tn": 472052,
-            "fn": 2233
+            "tp": 132724,
+            "fp": 22984,
+            "tn": 450487,
+            "fn": 1196
           }
         },
         {
           "labels": 800,
-          "precision": 0.985795,
-          "recall": 0.988202,
-          "f1": 0.986997,
-          "false_positive_rate": 0.004028,
-          "false_negative_rate": 0.011798,
+          "precision": 0.853267,
+          "recall": 0.990591,
+          "f1": 0.916816,
+          "false_positive_rate": 0.048182,
+          "false_negative_rate": 0.009409,
           "confusion": {
-            "tp": 132340,
-            "fp": 1907,
-            "tn": 471564,
-            "fn": 1580
+            "tp": 132660,
+            "fp": 22813,
+            "tn": 450658,
+            "fn": 1260
           }
         },
         {
           "labels": 900,
-          "precision": 0.987817,
-          "recall": 0.988082,
-          "f1": 0.98795,
-          "false_positive_rate": 0.003447,
-          "false_negative_rate": 0.011918,
+          "precision": 0.853212,
+          "recall": 0.99033,
+          "f1": 0.916672,
+          "false_positive_rate": 0.048191,
+          "false_negative_rate": 0.00967,
           "confusion": {
-            "tp": 132324,
-            "fp": 1632,
-            "tn": 471839,
-            "fn": 1596
+            "tp": 132625,
+            "fp": 22817,
+            "tn": 450654,
+            "fn": 1295
           }
         },
         {
           "labels": 1000,
-          "precision": 0.988217,
-          "recall": 0.988262,
-          "f1": 0.98824,
-          "false_positive_rate": 0.003333,
-          "false_negative_rate": 0.011738,
+          "precision": 0.853016,
+          "recall": 0.990599,
+          "f1": 0.916674,
+          "false_positive_rate": 0.04828,
+          "false_negative_rate": 0.009401,
           "confusion": {
-            "tp": 132348,
-            "fp": 1578,
-            "tn": 471893,
-            "fn": 1572
+            "tp": 132661,
+            "fp": 22859,
+            "tn": 450612,
+            "fn": 1259
           }
         }
       ],
       "per_family_recall_before": {
         "Bot": {
           "n": 1159,
-          "recall": 0.0
+          "recall": 0.00604
         },
         "DDoS": {
           "n": 76835,
-          "recall": 0.63514
+          "recall": 0.999753
         },
         "Infiltration": {
           "n": 22,
-          "recall": 0.0
+          "recall": 0.636364
         },
         "PortScan": {
           "n": 54640,
-          "recall": 0.002727
+          "recall": 0.523115
         },
         "Web Attack - Brute Force": {
           "n": 883,
-          "recall": 0.048698
+          "recall": 0.935447
         },
         "Web Attack - Sql Injection": {
           "n": 12,
-          "recall": 0.416667
+          "recall": 0.916667
         },
         "Web Attack - XSS": {
           "n": 369,
-          "recall": 0.02439
+          "recall": 0.97561
         }
       },
       "per_family_recall_after": {
         "Bot": {
           "n": 1159,
-          "recall": 0.003451
+          "recall": 0.038827
         },
         "DDoS": {
           "n": 76835,
-          "recall": 0.998725
+          "recall": 0.999753
         },
         "Infiltration": {
           "n": 22,
-          "recall": 0.0
+          "recall": 0.636364
         },
         "PortScan": {
           "n": 54640,
-          "recall": 0.996816
+          "recall": 0.999067
         },
         "Web Attack - Brute Force": {
           "n": 883,
-          "recall": 0.883352
+          "recall": 0.935447
         },
         "Web Attack - Sql Injection": {
           "n": 12,
-          "recall": 0.583333
+          "recall": 0.916667
         },
         "Web Attack - XSS": {
           "n": 369,
-          "recall": 0.95935
+          "recall": 0.97561
         }
       }
     },
     {
       "setting": "temporal_transfer",
       "description": "Labels come only from Thursday; evaluation is Friday alone. Nothing an analyst touched shares a capture window with anything scored, so this measures transfer to a later, different campaign.",
-      "adaptive_cutoff": 0.57,
+      "adaptive_cutoff": 0.932,
       "pool_flows": 396897,
       "evaluation_flows": 615420,
       "label_budget": 1000,
       "labels_as_share_of_pool": 0.00252,
       "before": {
         "labels": 0,
-        "precision": 0.995523,
-        "recall": 0.369825,
-        "f1": 0.539304,
-        "false_positive_rate": 0.00093,
-        "false_negative_rate": 0.630175,
+        "precision": 0.860187,
+        "recall": 0.795233,
+        "f1": 0.826436,
+        "false_positive_rate": 0.072248,
+        "false_negative_rate": 0.204767,
         "confusion": {
-          "tp": 81604,
-          "fp": 367,
-          "tn": 394397,
-          "fn": 139052
+          "tp": 175473,
+          "fp": 28521,
+          "tn": 366243,
+          "fn": 45183
         }
       },
       "at_headline_budget": {
         "labels": 500,
-        "precision": 0.994953,
-        "recall": 0.369843,
-        "f1": 0.53924,
-        "false_positive_rate": 0.001049,
-        "false_negative_rate": 0.630157,
+        "precision": 0.860187,
+        "recall": 0.795233,
+        "f1": 0.826436,
+        "false_positive_rate": 0.072248,
+        "false_negative_rate": 0.204767,
         "confusion": {
-          "tp": 81608,
-          "fp": 414,
-          "tn": 394350,
-          "fn": 139048
+          "tp": 175473,
+          "fp": 28521,
+          "tn": 366243,
+          "fn": 45183
         }
       },
       "after": {
         "labels": 1000,
-        "precision": 0.976344,
-        "recall": 0.370169,
-        "f1": 0.536812,
-        "false_positive_rate": 0.005013,
-        "false_negative_rate": 0.629831,
+        "precision": 0.860187,
+        "recall": 0.795233,
+        "f1": 0.826436,
+        "false_positive_rate": 0.072248,
+        "false_negative_rate": 0.204767,
         "confusion": {
-          "tp": 81680,
-          "fp": 1979,
-          "tn": 392785,
-          "fn": 138976
+          "tp": 175473,
+          "fp": 28521,
+          "tn": 366243,
+          "fn": 45183
         }
       },
       "delta_at_headline": {
-        "recall": 1.8e-05,
-        "false_positive_rate": 0.000119
+        "recall": 0.0,
+        "false_positive_rate": 0.0
       },
       "learning_curve": [
         {
           "labels": 0,
-          "precision": 0.995523,
-          "recall": 0.369825,
-          "f1": 0.539304,
-          "false_positive_rate": 0.00093,
-          "false_negative_rate": 0.630175,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
           "confusion": {
-            "tp": 81604,
-            "fp": 367,
-            "tn": 394397,
-            "fn": 139052
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
           }
         },
         {
           "labels": 100,
-          "precision": 0.952707,
-          "recall": 0.369834,
-          "f1": 0.532828,
-          "false_positive_rate": 0.010262,
-          "false_negative_rate": 0.630166,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
           "confusion": {
-            "tp": 81606,
-            "fp": 4051,
-            "tn": 390713,
-            "fn": 139050
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
           }
         },
         {
           "labels": 200,
-          "precision": 0.994334,
-          "recall": 0.369825,
-          "f1": 0.53913,
-          "false_positive_rate": 0.001178,
-          "false_negative_rate": 0.630175,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
           "confusion": {
-            "tp": 81604,
-            "fp": 465,
-            "tn": 394299,
-            "fn": 139052
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
           }
         },
         {
           "labels": 300,
-          "precision": 0.912902,
-          "recall": 0.369843,
-          "f1": 0.526418,
-          "false_positive_rate": 0.019723,
-          "false_negative_rate": 0.630157,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
           "confusion": {
-            "tp": 81608,
-            "fp": 7786,
-            "tn": 386978,
-            "fn": 139048
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
           }
         },
         {
           "labels": 400,
-          "precision": 0.995025,
-          "recall": 0.369838,
-          "f1": 0.539246,
-          "false_positive_rate": 0.001034,
-          "false_negative_rate": 0.630162,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
           "confusion": {
-            "tp": 81607,
-            "fp": 408,
-            "tn": 394356,
-            "fn": 139049
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
           }
         },
         {
           "labels": 500,
-          "precision": 0.994953,
-          "recall": 0.369843,
-          "f1": 0.53924,
-          "false_positive_rate": 0.001049,
-          "false_negative_rate": 0.630157,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
           "confusion": {
-            "tp": 81608,
-            "fp": 414,
-            "tn": 394350,
-            "fn": 139048
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
           }
         },
         {
           "labels": 600,
-          "precision": 0.995076,
-          "recall": 0.370038,
-          "f1": 0.539465,
-          "false_positive_rate": 0.001023,
-          "false_negative_rate": 0.629962,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
           "confusion": {
-            "tp": 81651,
-            "fp": 404,
-            "tn": 394360,
-            "fn": 139005
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
           }
         },
         {
           "labels": 700,
-          "precision": 0.987148,
-          "recall": 0.370024,
-          "f1": 0.538279,
-          "false_positive_rate": 0.002693,
-          "false_negative_rate": 0.629976,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
           "confusion": {
-            "tp": 81648,
-            "fp": 1063,
-            "tn": 393701,
-            "fn": 139008
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
           }
         },
         {
           "labels": 800,
-          "precision": 0.976477,
-          "recall": 0.370056,
-          "f1": 0.536713,
-          "false_positive_rate": 0.004983,
-          "false_negative_rate": 0.629944,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
           "confusion": {
-            "tp": 81655,
-            "fp": 1967,
-            "tn": 392797,
-            "fn": 139001
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
           }
         },
         {
           "labels": 900,
-          "precision": 0.9807,
-          "recall": 0.370074,
-          "f1": 0.537368,
-          "false_positive_rate": 0.004071,
-          "false_negative_rate": 0.629926,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
           "confusion": {
-            "tp": 81659,
-            "fp": 1607,
-            "tn": 393157,
-            "fn": 138997
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
           }
         },
         {
           "labels": 1000,
-          "precision": 0.976344,
-          "recall": 0.370169,
-          "f1": 0.536812,
-          "false_positive_rate": 0.005013,
-          "false_negative_rate": 0.629831,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
           "confusion": {
-            "tp": 81680,
-            "fp": 1979,
-            "tn": 392785,
-            "fn": 138976
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
           }
         }
       ],
       "per_family_recall_before": {
         "Bot": {
           "n": 1948,
-          "recall": 0.0
+          "recall": 0.006674
         },
         "DDoS": {
           "n": 128014,
-          "recall": 0.635579
+          "recall": 0.999758
         },
         "PortScan": {
           "n": 90694,
-          "recall": 0.002657
+          "recall": 0.523486
         }
       },
       "per_family_recall_after": {
         "Bot": {
           "n": 1948,
-          "recall": 0.0
+          "recall": 0.006674
         },
         "DDoS": {
           "n": 128014,
-          "recall": 0.635579
+          "recall": 0.999758
         },
         "PortScan": {
           "n": 90694,
-          "recall": 0.003495
+          "recall": 0.523486
         }
       }
     }
   ],
   "why_not_reinforcement_learning": "RL needs a reward signal we would have to invent and interaction volumes far beyond a few hundred analyst verdicts. At this scale it could not be shown to beat a static baseline, so it would be a claim rather than a result. The analyst verdict is already a label, which makes supervised incremental learning the honest fit.",
-  "evaluated_at": "2026-07-21T19:52:59+00:00",
+  "evaluated_at": "2026-07-21T21:59:07+00:00",
   "honesty": [
     "Each evaluation set is fixed before the first batch, never labelled, never trained on.",
     "The base model never saw Thursday or Friday at all.",
