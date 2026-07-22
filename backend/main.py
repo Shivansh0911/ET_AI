@@ -18,7 +18,7 @@ from agents.attack_mapper import build_kill_chain, predict_next_move
 from agents.copilot import chat_with_copilot
 from agents.response_orchestrator import generate_playbook
 from agents.threat_intel import search_threat_intel
-from engine import attribution, feedback, fusion, graph, ingest, ledger, replay, vuln
+from engine import attribution, feedback, fusion, graph, ingest, ledger, ot, replay, vuln
 from engine.assets import ASSETS, PROVENANCE
 from engine.metrics_registry import attribution as attribution_metrics
 from engine.metrics_registry import continual as metrics_continual
@@ -71,6 +71,7 @@ STREAM_SIZE = 600
 LLM_CACHE_TTL = 300  # seconds — the free Groq tier will rate-limit under demo clicking
 
 _hosts = fusion.host_signals()
+_ot = ot.signals()
 _llm_cache: dict[str, tuple[float, object]] = {}
 # Feature vectors keyed by event id, so an analyst verdict attaches to the exact row the model
 # scored rather than to a description of it.
@@ -91,7 +92,7 @@ def _rescore(seed: int = 7) -> None:
     global _stream, _detections, _incidents
     _stream = replay.build_stream(STREAM_SIZE, seed=seed)
     _detections = detect_anomalies(_stream["events"])
-    _incidents = fusion.correlate(_stream["events"], _hosts)
+    _incidents = fusion.correlate(_stream["events"], _hosts, _ot)
     global _graph
     _graph = graph.build(_detections, _incidents)
     _vector_index.clear()
@@ -277,6 +278,7 @@ def get_incidents():
             "placement": "asset and window assignment is illustrative; the telemetry and the "
                          "attributed technique are real",
         },
+        "ot_plane": {"signals": len(_ot), "note": ot.NOTE},
         "measured": fusion_metrics(),
     }
 

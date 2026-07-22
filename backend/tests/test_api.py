@@ -336,3 +336,28 @@ def test_two_operating_points_are_reported(client):
     # The high-recall point catches more but alerts more — the trade must be visible.
     assert max(recalls) > min(recalls)
     assert max(alerts) > min(alerts)
+
+
+# ─── OT plane (heterogeneous IT and OT correlation) ───
+
+def test_incidents_can_span_it_and_ot(client):
+    body = client.get("/api/incidents").json()
+    assert "it_ot_incidents" in body["summary"]
+    assert body["ot_plane"]["signals"] > 0
+    spanning = [i for i in body["incidents"] if i.get("spans_it_ot")]
+    for inc in spanning:
+        assert "ot" in inc["planes"] and ("network" in inc["planes"] or "host" in inc["planes"])
+        assert inc["evidence"]["ot"], "an IT+OT incident must carry OT evidence"
+
+
+def test_ot_is_labelled_simulated(client):
+    body = client.get("/api/incidents").json()
+    assert "simulated" in body["ot_plane"]["note"].lower()
+
+
+def test_ot_only_on_industrial_assets():
+    from engine import ot
+    industrial = set(ot.OT_ASSETS)
+    for signal in ot.signals():
+        assert signal["asset"] in industrial, "OT signals must only appear on assets with a PLC"
+        assert signal["simulated"] is True

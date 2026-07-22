@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { GitMerge, Network, MonitorCheck } from 'lucide-react'
+import { GitMerge, Network, MonitorCheck, Cpu } from 'lucide-react'
 import { api } from '../utils/api'
 import { Card, Empty, Failed, Loading, Mono, Note, Provenance, Severity, Stat, StatStrip } from './ui'
 import ThreatMap from './ThreatMap'
@@ -46,7 +46,8 @@ export default function Incidents() {
             note="below the alerting threshold" />
         </Card>
         <Card>
-          <Stat label="Host captures" value={data.host_plane.captures} note="ATT&CK-labelled" />
+          <Stat label="IT + OT incidents" value={summary.it_ot_incidents ?? 0} tone="bad"
+            note="span network and ICS" />
         </Card>
       </StatStrip>
 
@@ -107,6 +108,7 @@ export default function Incidents() {
       </div>
 
       <Note>{data.host_plane.placement}</Note>
+      {data.ot_plane?.note && <Note>{data.ot_plane.note}</Note>}
     </div>
   )
 }
@@ -125,6 +127,12 @@ function IncidentCard({ incident, open, setOpen, highlight }) {
             <Mono className="text-meta">{incident.id}</Mono>
           </div>
           <div className="flex items-center gap-2">
+            {incident.spans_it_ot && (
+              <span className="inline-flex items-center gap-1 rounded border border-bad/40
+                bg-bad/10 px-1.5 py-px text-[10px] font-medium text-bad">
+                <Cpu size={10} /> IT + OT
+              </span>
+            )}
             {incident.techniques.map((t) => (
               <span key={t} className="font-mono rounded border border-line-strong px-1.5 py-px
                 text-[10px] text-ink-faint">{t}</span>
@@ -132,19 +140,32 @@ function IncidentCard({ incident, open, setOpen, highlight }) {
             <Severity level={incident.severity} />
           </div>
         </div>
-        <div className="mt-2 flex items-center gap-4 text-meta text-ink-faint">
+        <div className="mt-2 flex flex-wrap items-center gap-4 text-meta text-ink-faint">
           <span className="flex items-center gap-1.5">
             <Network size={12} /> {incident.network_signals} network
             {incident.weak_network_signals > 0 && ` (${incident.weak_network_signals} sub-threshold)`}
           </span>
-          <span className="flex items-center gap-1.5">
-            <MonitorCheck size={12} /> {incident.host_signals} host
-          </span>
+          {incident.host_signals > 0 && (
+            <span className="flex items-center gap-1.5">
+              <MonitorCheck size={12} /> {incident.host_signals} host
+            </span>
+          )}
+          {incident.ot_signals > 0 && (
+            <span className="flex items-center gap-1.5 text-bad">
+              <Cpu size={12} /> {incident.ot_signals} OT
+            </span>
+          )}
         </div>
       </button>
 
       {expanded && (
         <div className="space-y-3 border-t border-line px-3.5 py-3 rise">
+          {incident.it_ot_rationale && (
+            <p className="rounded-lg border border-bad/25 bg-bad/[0.06] px-3 py-2 text-meta
+              leading-relaxed text-ink-muted">
+              <Cpu size={12} className="mr-1 inline text-bad" />{incident.it_ot_rationale}
+            </p>
+          )}
           <p className="text-meta leading-relaxed text-ink-muted">{incident.rationale}</p>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
@@ -155,14 +176,26 @@ function IncidentCard({ incident, open, setOpen, highlight }) {
                 </div>
               ))}
             </div>
-            <div>
-              <div className="mb-1 text-label uppercase text-ink-faint">Host evidence</div>
-              {incident.evidence.host.map((h) => (
-                <div key={h.id} className="font-mono text-meta text-ink-muted">
-                  {h.technique} · {h.confidence} · {h.title}
-                </div>
-              ))}
-            </div>
+            {incident.evidence.host.length > 0 && (
+              <div>
+                <div className="mb-1 text-label uppercase text-ink-faint">Host evidence</div>
+                {incident.evidence.host.map((h) => (
+                  <div key={h.id} className="font-mono text-meta text-ink-muted">
+                    {h.technique} · {h.confidence} · {h.title}
+                  </div>
+                ))}
+              </div>
+            )}
+            {incident.evidence.ot?.length > 0 && (
+              <div>
+                <div className="mb-1 text-label uppercase text-bad">OT evidence (simulated)</div>
+                {incident.evidence.ot.map((o) => (
+                  <div key={o.id} className="font-mono text-meta text-ink-muted">
+                    {o.device} · {o.function_code} · {o.kind}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

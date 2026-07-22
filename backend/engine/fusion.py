@@ -86,10 +86,16 @@ def host_signals() -> list[dict]:
     return signals
 
 
-def correlate(network_events: list[dict], hosts: list[dict], threshold: float = 0.5) -> dict:
-    """Group both planes by asset and time bucket, then promote cross-plane coincidences."""
+def correlate(network_events: list[dict], hosts: list[dict], ot: list[dict] | None = None,
+              threshold: float = 0.5) -> dict:
+    """Group planes by asset and time bucket, then promote cross-plane coincidences.
+
+    Three planes now: network flows (IT), Windows host telemetry (IT), and a simulated OT/ICS
+    signal. An incident that carries both an IT signal and an OT signal on the same asset spans
+    the heterogeneous environments the problem statement asks us to correlate.
+    """
     buckets: dict[tuple[str, str], dict] = defaultdict(
-        lambda: {"network": [], "host": [], "weak_network": []})
+        lambda: {"network": [], "host": [], "weak_network": [], "ot": []})
 
     ordered_buckets: list[str] = []
     for event in network_events:
@@ -116,10 +122,24 @@ def correlate(network_events: list[dict], hosts: list[dict], threshold: float = 
         index = min(int(signal["spread"] * len(ordered_buckets)), len(ordered_buckets) - 1)
         buckets[(signal["asset"], ordered_buckets[index])]["host"].append(signal)
 
+    # OT plane, placed the same way. Only lands on buckets whose asset has an industrial layer.
+    for signal in (ot or []):
+        if not ordered_buckets:
+            break
+        index = min(int(signal["spread"] * len(ordered_buckets)), len(ordered_buckets) - 1)
+        buckets[(signal["asset"], ordered_buckets[index])]["ot"].append(signal)
+
     incidents = []
     for (asset, slot), entry in buckets.items():
-        if not entry["host"] or not entry["network"]:
+        # An incident forms when the network plane coincides with a second plane on the same
+        # asset — host (IT) or OT. Network-plus-host is the original fusion; network-plus-OT is
+        # the new cross-domain case the problem statement's "IT and OT" asks for.
+        if not entry["network"] or not (entry["host"] or entry["ot"]):
             continue
+
+        spans_it_ot = bool(entry["ot"]) and bool(entry["network"] or entry["host"])
+        planes = [p for p, present in (("network", entry["network"]), ("host", entry["host"]),
+                                       ("ot", entry["ot"])) if present]
 
         strong_network = [e for e in entry["network"] if e.get("anomaly_score", 0) >= threshold]
         fusion_only = not strong_network
@@ -142,6 +162,9 @@ def correlate(network_events: list[dict], hosts: list[dict], threshold: float = 
             "weak_network_signals": len(entry["weak_network"]),
             "strong_network_signals": len(strong_network),
             "host_signals": len(entry["host"]),
+            "ot_signals": len(entry["ot"]),
+            "spans_it_ot": spans_it_ot,
+            "planes": planes,
             "techniques": sorted({h["technique"] for h in entry["host"]}),
             "technique_names": sorted({h["technique_name"] for h in entry["host"] if h["technique_name"]}),
             "recovered_true_attacks": len(recovered),
@@ -153,7 +176,14 @@ def correlate(network_events: list[dict], hosts: list[dict], threshold: float = 
                             for e in entry["network"][:5]],
                 "host": [{"id": h["id"], "title": h["title"], "technique": h["technique"],
                           "confidence": h["confidence"]} for h in entry["host"][:3]],
+                "ot": [{"id": o["id"], "device": o["device"], "kind": o["kind"],
+                        "function_code": o["function_code"], "detail": o["detail"],
+                        "process": o["process"]} for o in entry["ot"][:3]],
             },
+            "it_ot_rationale": ("This incident links IT and OT: network activity and a Modbus/ICS "
+                                "write on the same asset in the same window — the cross-domain "
+                                "signal a purely-IT SOC cannot see. OT data is simulated."
+                                if spans_it_ot else None),
             "rationale": ("No flow in this window crossed the detection threshold; the incident "
                           "exists only because sub-threshold network activity coincided with an "
                           "attributed host technique on the same asset."
@@ -165,17 +195,19 @@ def correlate(network_events: list[dict], hosts: list[dict], threshold: float = 
     incidents.sort(key=lambda i: (not i["fusion_only"], i["window"]), reverse=True)
 
     fusion_only = [i for i in incidents if i["fusion_only"]]
+    it_ot = [i for i in incidents if i["spans_it_ot"]]
     return {
         "incidents": incidents,
         "summary": {
             "incidents": len(incidents),
             "fusion_only_incidents": len(fusion_only),
+            "it_ot_incidents": len(it_ot),
             "true_attacks_recovered": sum(i["recovered_true_attacks"] for i in fusion_only),
             "benign_flows_promoted": sum(i["promoted_benign_flows"] for i in fusion_only),
             "weak_band": [WEAK_FLOOR, threshold],
             "bucket_minutes": BUCKET_MINUTES,
         },
-        "method": "co-occurrence of network and host plane signals on one asset within a "
-                  f"{BUCKET_MINUTES}-minute window; 'fusion_only' means no single signal in "
-                  "the window would have alerted on its own",
+        "method": "co-occurrence of network, host and OT plane signals on one asset within a "
+                  f"{BUCKET_MINUTES}-minute window. 'fusion_only' means no single signal would "
+                  "have alerted alone; 'spans_it_ot' means the incident links IT and OT.",
     }
