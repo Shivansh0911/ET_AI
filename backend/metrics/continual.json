@@ -1,0 +1,546 @@
+{
+  "question": "Does learning from analyst verdicts beat the frozen detector on captures it was never trained on?",
+  "base_model_version": "hybrid-a6d2618c9257",
+  "method": "RandomForest(depth 14) refitted on all accumulated analyst labels after each batch, taking the base model's probability as an extra feature; its alert cutoff is calibrated out-of-fold to a 1% false-positive budget. Served score fires if the base model fires OR the adaptive layer clears that cutoff. Labels acquired by 70% uncertainty sampling and 30% random audit, in batches of 100.",
+  "headline_label_budget": 500,
+  "full_label_budget": 1000,
+  "decision_threshold": 0.5,
+  "engineering_log": [
+    {
+      "attempt": "SGDClassifier.partial_fit, 50-row batches",
+      "result": "unstable \u2014 recall swung 0.72/0.41/0.96 across consecutive batches, FPR 18%",
+      "why": "each incremental step forgot the previous batch"
+    },
+    {
+      "attempt": "LogisticRegression refitted on accumulated labels",
+      "result": "stable but weak \u2014 +3.6pp recall for a 25x worse FPR",
+      "why": "a linear boundary cannot separate PortScan from benign on these features"
+    },
+    {
+      "attempt": "RandomForest(depth 14) refitted, stacked on the base probability",
+      "result": "shipped \u2014 see settings below",
+      "why": "nonlinear, and the base score as a feature lets it learn where the base is wrong"
+    }
+  ],
+  "settings": [
+    {
+      "setting": "campaign_assisted",
+      "description": "Reviewable pool and evaluation set are a random partition of the same Thu/Fri period. Confirming one alert lets the model catch the rest of that campaign \u2014 real operational value, and the generous reading, since near-duplicate flows from one burst can fall on both sides.",
+      "adaptive_cutoff": 0.632,
+      "pool_flows": 404926,
+      "evaluation_flows": 607391,
+      "label_budget": 1000,
+      "labels_as_share_of_pool": 0.00247,
+      "before": {
+        "labels": 0,
+        "precision": 0.827393,
+        "recall": 0.796125,
+        "f1": 0.811458,
+        "false_positive_rate": 0.046976,
+        "false_negative_rate": 0.203875,
+        "confusion": {
+          "tp": 106617,
+          "fp": 22242,
+          "tn": 451229,
+          "fn": 27303
+        }
+      },
+      "at_headline_budget": {
+        "labels": 500,
+        "precision": 0.853025,
+        "recall": 0.990285,
+        "f1": 0.916545,
+        "false_positive_rate": 0.048261,
+        "false_negative_rate": 0.009715,
+        "confusion": {
+          "tp": 132619,
+          "fp": 22850,
+          "tn": 450621,
+          "fn": 1301
+        }
+      },
+      "after": {
+        "labels": 1000,
+        "precision": 0.853016,
+        "recall": 0.990599,
+        "f1": 0.916674,
+        "false_positive_rate": 0.04828,
+        "false_negative_rate": 0.009401,
+        "confusion": {
+          "tp": 132661,
+          "fp": 22859,
+          "tn": 450612,
+          "fn": 1259
+        }
+      },
+      "delta_at_headline": {
+        "recall": 0.19416,
+        "false_positive_rate": 0.001285
+      },
+      "learning_curve": [
+        {
+          "labels": 0,
+          "precision": 0.827393,
+          "recall": 0.796125,
+          "f1": 0.811458,
+          "false_positive_rate": 0.046976,
+          "false_negative_rate": 0.203875,
+          "confusion": {
+            "tp": 106617,
+            "fp": 22242,
+            "tn": 451229,
+            "fn": 27303
+          }
+        },
+        {
+          "labels": 100,
+          "precision": 0.850294,
+          "recall": 0.965203,
+          "f1": 0.904112,
+          "false_positive_rate": 0.048066,
+          "false_negative_rate": 0.034797,
+          "confusion": {
+            "tp": 129260,
+            "fp": 22758,
+            "tn": 450713,
+            "fn": 4660
+          }
+        },
+        {
+          "labels": 200,
+          "precision": 0.853241,
+          "recall": 0.990255,
+          "f1": 0.916657,
+          "false_positive_rate": 0.048176,
+          "false_negative_rate": 0.009745,
+          "confusion": {
+            "tp": 132615,
+            "fp": 22810,
+            "tn": 450661,
+            "fn": 1305
+          }
+        },
+        {
+          "labels": 300,
+          "precision": 0.853225,
+          "recall": 0.990255,
+          "f1": 0.916647,
+          "false_positive_rate": 0.048182,
+          "false_negative_rate": 0.009745,
+          "confusion": {
+            "tp": 132615,
+            "fp": 22813,
+            "tn": 450658,
+            "fn": 1305
+          }
+        },
+        {
+          "labels": 400,
+          "precision": 0.853246,
+          "recall": 0.990211,
+          "f1": 0.91664,
+          "false_positive_rate": 0.048172,
+          "false_negative_rate": 0.009789,
+          "confusion": {
+            "tp": 132609,
+            "fp": 22808,
+            "tn": 450663,
+            "fn": 1311
+          }
+        },
+        {
+          "labels": 500,
+          "precision": 0.853025,
+          "recall": 0.990285,
+          "f1": 0.916545,
+          "false_positive_rate": 0.048261,
+          "false_negative_rate": 0.009715,
+          "confusion": {
+            "tp": 132619,
+            "fp": 22850,
+            "tn": 450621,
+            "fn": 1301
+          }
+        },
+        {
+          "labels": 600,
+          "precision": 0.853236,
+          "recall": 0.990255,
+          "f1": 0.916653,
+          "false_positive_rate": 0.048178,
+          "false_negative_rate": 0.009745,
+          "confusion": {
+            "tp": 132615,
+            "fp": 22811,
+            "tn": 450660,
+            "fn": 1305
+          }
+        },
+        {
+          "labels": 700,
+          "precision": 0.85239,
+          "recall": 0.991069,
+          "f1": 0.916514,
+          "false_positive_rate": 0.048544,
+          "false_negative_rate": 0.008931,
+          "confusion": {
+            "tp": 132724,
+            "fp": 22984,
+            "tn": 450487,
+            "fn": 1196
+          }
+        },
+        {
+          "labels": 800,
+          "precision": 0.853267,
+          "recall": 0.990591,
+          "f1": 0.916816,
+          "false_positive_rate": 0.048182,
+          "false_negative_rate": 0.009409,
+          "confusion": {
+            "tp": 132660,
+            "fp": 22813,
+            "tn": 450658,
+            "fn": 1260
+          }
+        },
+        {
+          "labels": 900,
+          "precision": 0.853212,
+          "recall": 0.99033,
+          "f1": 0.916672,
+          "false_positive_rate": 0.048191,
+          "false_negative_rate": 0.00967,
+          "confusion": {
+            "tp": 132625,
+            "fp": 22817,
+            "tn": 450654,
+            "fn": 1295
+          }
+        },
+        {
+          "labels": 1000,
+          "precision": 0.853016,
+          "recall": 0.990599,
+          "f1": 0.916674,
+          "false_positive_rate": 0.04828,
+          "false_negative_rate": 0.009401,
+          "confusion": {
+            "tp": 132661,
+            "fp": 22859,
+            "tn": 450612,
+            "fn": 1259
+          }
+        }
+      ],
+      "per_family_recall_before": {
+        "Bot": {
+          "n": 1159,
+          "recall": 0.00604
+        },
+        "DDoS": {
+          "n": 76835,
+          "recall": 0.999753
+        },
+        "Infiltration": {
+          "n": 22,
+          "recall": 0.636364
+        },
+        "PortScan": {
+          "n": 54640,
+          "recall": 0.523115
+        },
+        "Web Attack - Brute Force": {
+          "n": 883,
+          "recall": 0.935447
+        },
+        "Web Attack - Sql Injection": {
+          "n": 12,
+          "recall": 0.916667
+        },
+        "Web Attack - XSS": {
+          "n": 369,
+          "recall": 0.97561
+        }
+      },
+      "per_family_recall_after": {
+        "Bot": {
+          "n": 1159,
+          "recall": 0.038827
+        },
+        "DDoS": {
+          "n": 76835,
+          "recall": 0.999753
+        },
+        "Infiltration": {
+          "n": 22,
+          "recall": 0.636364
+        },
+        "PortScan": {
+          "n": 54640,
+          "recall": 0.999067
+        },
+        "Web Attack - Brute Force": {
+          "n": 883,
+          "recall": 0.935447
+        },
+        "Web Attack - Sql Injection": {
+          "n": 12,
+          "recall": 0.916667
+        },
+        "Web Attack - XSS": {
+          "n": 369,
+          "recall": 0.97561
+        }
+      }
+    },
+    {
+      "setting": "temporal_transfer",
+      "description": "Labels come only from Thursday; evaluation is Friday alone. Nothing an analyst touched shares a capture window with anything scored, so this measures transfer to a later, different campaign.",
+      "adaptive_cutoff": 0.932,
+      "pool_flows": 396897,
+      "evaluation_flows": 615420,
+      "label_budget": 1000,
+      "labels_as_share_of_pool": 0.00252,
+      "before": {
+        "labels": 0,
+        "precision": 0.860187,
+        "recall": 0.795233,
+        "f1": 0.826436,
+        "false_positive_rate": 0.072248,
+        "false_negative_rate": 0.204767,
+        "confusion": {
+          "tp": 175473,
+          "fp": 28521,
+          "tn": 366243,
+          "fn": 45183
+        }
+      },
+      "at_headline_budget": {
+        "labels": 500,
+        "precision": 0.860187,
+        "recall": 0.795233,
+        "f1": 0.826436,
+        "false_positive_rate": 0.072248,
+        "false_negative_rate": 0.204767,
+        "confusion": {
+          "tp": 175473,
+          "fp": 28521,
+          "tn": 366243,
+          "fn": 45183
+        }
+      },
+      "after": {
+        "labels": 1000,
+        "precision": 0.860187,
+        "recall": 0.795233,
+        "f1": 0.826436,
+        "false_positive_rate": 0.072248,
+        "false_negative_rate": 0.204767,
+        "confusion": {
+          "tp": 175473,
+          "fp": 28521,
+          "tn": 366243,
+          "fn": 45183
+        }
+      },
+      "delta_at_headline": {
+        "recall": 0.0,
+        "false_positive_rate": 0.0
+      },
+      "learning_curve": [
+        {
+          "labels": 0,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
+          "confusion": {
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
+          }
+        },
+        {
+          "labels": 100,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
+          "confusion": {
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
+          }
+        },
+        {
+          "labels": 200,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
+          "confusion": {
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
+          }
+        },
+        {
+          "labels": 300,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
+          "confusion": {
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
+          }
+        },
+        {
+          "labels": 400,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
+          "confusion": {
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
+          }
+        },
+        {
+          "labels": 500,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
+          "confusion": {
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
+          }
+        },
+        {
+          "labels": 600,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
+          "confusion": {
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
+          }
+        },
+        {
+          "labels": 700,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
+          "confusion": {
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
+          }
+        },
+        {
+          "labels": 800,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
+          "confusion": {
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
+          }
+        },
+        {
+          "labels": 900,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
+          "confusion": {
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
+          }
+        },
+        {
+          "labels": 1000,
+          "precision": 0.860187,
+          "recall": 0.795233,
+          "f1": 0.826436,
+          "false_positive_rate": 0.072248,
+          "false_negative_rate": 0.204767,
+          "confusion": {
+            "tp": 175473,
+            "fp": 28521,
+            "tn": 366243,
+            "fn": 45183
+          }
+        }
+      ],
+      "per_family_recall_before": {
+        "Bot": {
+          "n": 1948,
+          "recall": 0.006674
+        },
+        "DDoS": {
+          "n": 128014,
+          "recall": 0.999758
+        },
+        "PortScan": {
+          "n": 90694,
+          "recall": 0.523486
+        }
+      },
+      "per_family_recall_after": {
+        "Bot": {
+          "n": 1948,
+          "recall": 0.006674
+        },
+        "DDoS": {
+          "n": 128014,
+          "recall": 0.999758
+        },
+        "PortScan": {
+          "n": 90694,
+          "recall": 0.523486
+        }
+      }
+    }
+  ],
+  "why_not_reinforcement_learning": "RL needs a reward signal we would have to invent and interaction volumes far beyond a few hundred analyst verdicts. At this scale it could not be shown to beat a static baseline, so it would be a claim rather than a result. The analyst verdict is already a label, which makes supervised incremental learning the honest fit.",
+  "evaluated_at": "2026-07-21T21:59:07+00:00",
+  "honesty": [
+    "Each evaluation set is fixed before the first batch, never labelled, never trained on.",
+    "The base model never saw Thursday or Friday at all.",
+    "False positive rate is reported at every point on the curve. An adaptive layer that buys recall by alerting on everything is a regression and the curve would show it.",
+    "Setting A is the operational claim; Setting B is where the method stops working. Feedback from one campaign does not transfer to a different later one \u2014 novel families still need their own labels, and that limit is the point of reporting B.",
+    "Analyst verdicts are simulated from dataset ground truth. Real analysts are slower, inconsistent and sometimes wrong, so this measures the mechanism's ceiling."
+  ]
+}

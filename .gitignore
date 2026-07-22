@@ -11,6 +11,16 @@ frontend/dist/
 frontend/.env
 frontend/.env.local
 
+# Datasets — downloaded on demand, never committed (see backend/ml/download_datasets.py)
+backend/data/raw/
+backend/data/processed/
+
+# Runtime audit chain — regenerated per process, never a committed artifact
+backend/data/audit_ledger.jsonl
+backend/data/audit_ledger.db
+backend/data/analyst_feedback.jsonl
+
 # OS
 .DS_Store
 Thumbs.db
+

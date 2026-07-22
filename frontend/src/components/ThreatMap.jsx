@@ -1,95 +1,174 @@
-import { useEffect, useState } from 'react'
-import { api } from '../utils/api'
+import { useMemo, useState } from 'react'
+import { ComposableMap, Geographies, Geography, Marker } from 'react-simple-maps'
+import { MapPin } from 'lucide-react'
+import india from '../data/india.topo.json'
+import { Card, Severity, Mono, Empty, MAP, severityHex } from './ui'
 
-// Simplified India outline path (approximate silhouette for a stylized SOC map).
-const INDIA_OUTLINE = "M 150 20 L 190 15 L 230 30 L 250 60 L 270 55 L 290 75 L 285 110 L 300 140 L 290 180 L 310 210 L 300 250 L 280 290 L 260 330 L 240 370 L 220 410 L 200 440 L 185 460 L 170 440 L 160 400 L 145 370 L 130 340 L 120 300 L 100 270 L 90 230 L 100 190 L 85 160 L 95 120 L 80 90 L 100 60 L 120 40 Z"
+// State boundaries from a 37 KB TopoJSON bundled with the app — no network call at render time,
+// which matters when the demo runs on venue wifi. Sites are placed by real lat/lng and sized by
+// how many detections landed there, so the map reads as a workload distribution rather than the
+// glowing radar sweep these dashboards usually get.
 
-// City coordinates mapped onto the 0-400 x 0-480 viewBox used by the outline above.
-const CITY_COORDS = {
-  Delhi: { x: 175, y: 110 },
-  Lucknow: { x: 210, y: 150 },
-  Mumbai: { x: 130, y: 270 },
-  Hyderabad: { x: 190, y: 300 },
-  Chennai: { x: 190, y: 380 },
+// Solved rather than eyeballed: this is the largest Mercator scale that keeps the full extent
+// (68.0–97.5°E, 7.9–37.2°N) inside a 520×520 viewport with 14px of padding. At scale 1000 the
+// far north clipped by 35px.
+const PROJECTION = { scale: 875, center: [82.75, 23.35] }
+
+function radius(count, max) {
+  if (!count) return 3
+  return 4 + Math.sqrt(count / Math.max(max, 1)) * 9
 }
 
-function sevColor(count, critical) {
-  if (critical > 0) return '#ef4444'
-  if (count >= 5) return '#f97316'
-  if (count >= 2) return '#eab308'
-  return '#10b981'
-}
-
-export default function ThreatMap() {
-  const [threats, setThreats] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+export default function ThreatMap({ locations = [], detections = [] }) {
   const [selected, setSelected] = useState(null)
 
-  useEffect(() => {
-    api.getDashboard()
-      .then((d) => setThreats(d.location_threats || []))
-      .catch(() => setError('Unable to load threat map data.'))
-      .finally(() => setLoading(false))
-  }, [])
+  const sites = useMemo(() => {
+    const max = Math.max(...locations.map((l) => l.count), 1)
+    return locations.map((l) => ({
+      ...l,
+      radius: radius(l.count, max),
+      tone: l.critical > 0 ? 'critical' : l.count > max * 0.5 ? 'high' : 'low',
+    }))
+  }, [locations])
 
-  if (loading) return <div className="text-gray-500 p-8 text-center">Loading intel...</div>
-  if (error) return <div className="text-red-400 p-8 text-center">{error}</div>
-
-  const maxCount = Math.max(1, ...threats.map((t) => t.count))
+  const forSelected = selected
+    ? detections.filter((d) => d.location === selected.city).slice(0, 8)
+    : []
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <div className="lg:col-span-2 bg-card border border-gray-800 rounded-xl p-4 flex items-center justify-center">
-        <svg viewBox="0 0 400 480" className="w-full max-w-md">
-          <path d={INDIA_OUTLINE} fill="#1a1a24" stroke="#3f3f46" strokeWidth="2" />
-          {threats.map((t) => {
-            const coord = CITY_COORDS[t.city]
-            if (!coord) return null
-            const radius = 6 + (t.count / maxCount) * 14
-            const color = sevColor(t.count, t.critical)
-            return (
-              <g
-                key={t.city}
-                onClick={() => setSelected(t)}
-                className="cursor-pointer"
-              >
-                <circle cx={coord.x} cy={coord.y} r={radius} fill={color} fillOpacity="0.25" className="pulse-ring" style={{ transformOrigin: `${coord.x}px ${coord.y}px` }} />
-                <circle cx={coord.x} cy={coord.y} r={Math.max(5, radius * 0.5)} fill={color} stroke="#0a0a0f" strokeWidth="1.5" />
-                <text x={coord.x} y={coord.y - radius - 8} textAnchor="middle" fill="#9ca3af" fontSize="11" className="mono">
-                  {t.city}
-                </text>
-              </g>
-            )
-          })}
-        </svg>
-      </div>
+    <Card
+      title="Monitored sites"
+      hint="Detection volume by location. Select a site to see what fired there."
+    >
+      <div className="space-y-4">
+        <div className="relative">
+          <ComposableMap
+            projection="geoMercator"
+            projectionConfig={PROJECTION}
+            width={520}
+            height={520}
+            style={{ width: '100%', height: 'auto' }}
+          >
+            <Geographies geography={india}>
+              {({ geographies }) =>
+                geographies.map((geo) => (
+                  <Geography
+                    key={geo.rsmKey}
+                    geography={geo}
+                    style={{
+                      default: { fill: MAP.land, stroke: MAP.border, strokeWidth: 0.5, outline: 'none' },
+                      hover: { fill: MAP.landHover, stroke: MAP.borderHover, strokeWidth: 0.5, outline: 'none' },
+                      pressed: { fill: MAP.landHover, outline: 'none' },
+                    }}
+                  />
+                ))
+              }
+            </Geographies>
 
-      <div className="bg-card border border-gray-800 rounded-xl p-4">
-        <h3 className="text-sm font-semibold text-gray-400 mb-3">Threat Locations</h3>
-        {threats.length === 0 && <p className="text-sm text-gray-500">No geolocated threats detected.</p>}
-        <div className="space-y-2">
-          {threats.sort((a, b) => b.count - a.count).map((t) => (
-            <button
-              key={t.city}
-              onClick={() => setSelected(t)}
-              className={`w-full text-left p-3 rounded-lg border transition ${
-                selected?.city === t.city ? 'border-emerald-500/50 bg-gray-900' : 'border-gray-800 bg-gray-900/50 hover:border-gray-700'
-              }`}
-            >
+            {sites.map((site) => {
+              const isSelected = selected?.city === site.city
+              const colour = site.tone === 'critical' ? severityHex('critical')
+                : site.tone === 'high' ? severityHex('high') : MAP.nominal
+              return (
+                <Marker
+                  key={site.city}
+                  coordinates={[site.lng, site.lat]}
+                  onClick={() => setSelected(isSelected ? null : site)}
+                  style={{ default: { cursor: 'pointer' }, hover: { cursor: 'pointer' } }}
+                >
+                  <circle r={site.radius + 5} fill={colour} opacity={isSelected ? 0.22 : 0.1} />
+                  <circle r={site.radius} fill={colour} fillOpacity={0.85}
+                    stroke={isSelected ? MAP.label : colour} strokeWidth={isSelected ? 1.5 : 0} />
+                  <text
+                    textAnchor="middle"
+                    y={-site.radius - 7}
+                    style={{ fill: isSelected ? MAP.label : MAP.labelMuted, fontSize: 10,
+                      fontFamily: 'Inter, sans-serif', pointerEvents: 'none' }}
+                  >
+                    {site.city}
+                  </text>
+                </Marker>
+              )
+            })}
+          </ComposableMap>
+
+          <div className="mt-2 flex flex-wrap items-center gap-4 text-meta text-ink-faint">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-severity-critical" /> critical present
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-severity-high" /> elevated volume
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-accent" /> nominal
+            </span>
+            <span>dot size = detection count</span>
+          </div>
+        </div>
+
+        <div className="border-t border-line pt-4">
+          {!selected ? (
+            <div className="space-y-2">
+              <div className="text-label uppercase text-ink-faint">All sites</div>
+              {sites.length === 0 && <Empty title="Nothing flagged">No site has an active detection in this window.</Empty>}
+              {sites.map((site) => (
+                <button
+                  key={site.city}
+                  onClick={() => setSelected(site)}
+                  className="flex w-full items-center justify-between gap-3 rounded-lg border
+                    border-line bg-surface-2 px-3 py-2 text-left transition-colors
+                    hover:border-line-strong"
+                >
+                  <span className="flex items-center gap-2 text-body text-ink">
+                    <MapPin size={12} className="text-ink-faint" />
+                    {site.city}
+                  </span>
+                  <span className="flex items-center gap-2">
+                    {site.critical > 0 && (
+                      <span className="font-mono text-[10px] text-severity-critical">
+                        {site.critical} crit
+                      </span>
+                    )}
+                    <Mono className="text-body">{site.count}</Mono>
+                  </span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-3 rise">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-200">{t.city}</span>
-                <span className="text-xs mono" style={{ color: sevColor(t.count, t.critical) }}>
-                  {t.count} threats
-                </span>
+                <div>
+                  <div className="text-title font-semibold text-ink">{selected.city}</div>
+                  <div className="text-meta text-ink-faint">
+                    {selected.count} detection{selected.count === 1 ? '' : 's'}
+                    {selected.critical > 0 && `, ${selected.critical} critical`}
+                  </div>
+                </div>
+                <button onClick={() => setSelected(null)}
+                  className="text-meta text-ink-faint hover:text-ink">Back</button>
               </div>
-              {t.critical > 0 && (
-                <span className="text-xs text-red-400 mono">{t.critical} critical</span>
-              )}
-            </button>
-          ))}
+
+              <div className="space-y-1.5">
+                {forSelected.map((d) => (
+                  <div key={d.id} className="rounded-lg border border-line bg-surface-2 px-3 py-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-body text-ink">{d.asset}</span>
+                      <Severity level={d.severity} />
+                    </div>
+                    <div className="mt-1 flex items-center gap-2 text-meta text-ink-faint">
+                      <Mono className="text-[11px]">{d.anomaly_score}</Mono>
+                      {d.mitre_id && <Mono className="text-[11px]">{d.mitre_id}</Mono>}
+                    </div>
+                  </div>
+                ))}
+                {forSelected.length === 0 && (
+                  <div className="text-meta text-ink-faint">No detections recorded here.</div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </div>
+    </Card>
   )
 }

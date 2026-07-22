@@ -1,0 +1,44 @@
+{
+  "question": "How many genuine attacks does cross-plane fusion surface that the network detector alone discards?",
+  "method": "25 independent replay windows of 600 flows each, at the held-out split's real class balance; incidents are cross-plane co-occurrences within a 60-minute window on one asset",
+  "windows": 25,
+  "flows_evaluated": 15000,
+  "attacks_in_sample": 2550,
+  "detector_alone": {
+    "threshold": 0.5,
+    "attacks_missed": 78,
+    "note": "Flows below the decision threshold raise no alert in a single-sensor pipeline, whatever their true label."
+  },
+  "weak_band": {
+    "range": [
+      0.2,
+      0.5
+    ],
+    "flows": 74,
+    "genuine_attacks": 60,
+    "families": [
+      "Bot",
+      "FTP-Patator",
+      "PortScan",
+      "SSH-Patator",
+      "Web Attack - Brute Force",
+      "Web Attack - Sql Injection",
+      "Web Attack - XSS"
+    ]
+  },
+  "with_fusion": {
+    "incidents": 415,
+    "fusion_only_incidents": 9,
+    "true_attacks_recovered": 7,
+    "benign_flows_promoted": 2,
+    "recovery_rate_of_weak_attacks": 0.1167,
+    "recovery_rate_of_all_missed": 0.0897,
+    "incidents_per_window": 16.6
+  },
+  "evaluated_at": "2026-07-21T16:04:46+00:00",
+  "honesty": [
+    "Recovery is bounded by co-occurrence: a weak flow is promoted only when a host capture lands on the same asset and window, so the rate reflects host-plane coverage as much as it reflects the method.",
+    "Benign flows promoted are reported next to attacks recovered \u2014 fusion trades precision for recall and both sides belong in the number.",
+    "Host captures are real OTRF telemetry with ground-truth technique labels; their placement onto assets and windows is illustrative, so this measures the mechanism rather than a field deployment."
+  ]
+}

@@ -1,0 +1,481 @@
+{
+  "dataset": "CIC-IDS2017",
+  "headline_split": "cross-capture (train Mon/Tue/Wed, test Thu/Fri)",
+  "why": "The random per-family split scored 99.8% recall, but the CSVs carry no timestamp so near-duplicate flows from one attack burst cannot be kept on one side of it. Testing on entirely unseen captures is the honest measure of whether the model generalises to behaviour it was not trained on.",
+  "architecture": "two heads: a supervised RandomForest for families seen in training, and a isolation_forest_quantile novelty model fitted on benign traffic only. A flow alerts if either head fires.",
+  "model": "RandomForestClassifier(n_estimators=60, max_depth=18) + IsolationForest over benign traffic rank-normalised to a normal distribution; score is negative path length",
+  "model_version": "hybrid-a6d2618c9257",
+  "train_days": [
+    "Monday",
+    "Tuesday",
+    "Wednesday"
+  ],
+  "test_days": [
+    "Thursday",
+    "Friday"
+  ],
+  "validation_share_of_training_days": 0.25,
+  "fpr_budget": 0.01,
+  "thresholds": {
+    "supervised": 0.047746,
+    "novelty": 0.59066,
+    "chosen_on": "validation split carved from the training days"
+  },
+  "cross_day": {
+    "tp": 177516,
+    "fp": 37044,
+    "tn": 752438,
+    "fn": 45319,
+    "precision": 0.827349,
+    "recall": 0.796625,
+    "f1": 0.811697,
+    "false_positive_rate": 0.046922,
+    "false_negative_rate": 0.203375,
+    "rows": 1012317,
+    "alerts_per_1000_flows": 211.95,
+    "roc_auc_supervised": 0.80789
+  },
+  "supervised_only": {
+    "tp": 133949,
+    "fp": 20980,
+    "tn": 768502,
+    "fn": 88886,
+    "precision": 0.864583,
+    "recall": 0.601113,
+    "f1": 0.709168,
+    "false_positive_rate": 0.026574,
+    "false_negative_rate": 0.398887,
+    "rows": 1012317,
+    "alerts_per_1000_flows": 153.04
+  },
+  "novelty_head_chosen": "isolation_forest_quantile",
+  "novelty_selection": {
+    "chosen": "isolation_forest_quantile",
+    "chosen_by": "an a priori modelling argument, NOT by validation evidence",
+    "rationale": "Density-based novelty detection degrades on heavy-tailed features; rank-normalising each feature to its benign quantile before fitting is the standard remedy, and CICFlowMeter features span orders of magnitude.",
+    "why_not_validation": "Three training-day criteria were tried and all three were uninformative \u2014 union recall saturates at 1.0, per-family recall is dominated by DoS floods, and leave-one-family-out separates the candidates by only 0.0003. Monday to Wednesday contains only DoS and brute force, so nothing there resembles the port scans and botnet traffic of the test days.",
+    "disclosure": "Every candidate's test result is published under all_variants. The cost of the argument being wrong is visible, not hidden.",
+    "leave_one_family_out": "retrain the supervised head without a family, then measure how much each novelty head recovers on it",
+    "supervised_alone_when_blind": {
+      "FTP-Patator": 1.0,
+      "SSH-Patator": 0.0775,
+      "DoS slowloris": 1.0,
+      "DoS Slowhttptest": 1.0,
+      "DoS Hulk": 0.9398,
+      "DoS GoldenEye": 0.934
+    },
+    "mean_recovered_by_head": {
+      "mahalanobis": 0.8255,
+      "knn_distance": 0.8255,
+      "isolation_forest_quantile": 0.8252
+    },
+    "per_family_recovered": {
+      "isolation_forest_quantile": {
+        "FTP-Patator": 1.0,
+        "SSH-Patator": 0.0775,
+        "DoS slowloris": 1.0,
+        "DoS Slowhttptest": 1.0,
+        "DoS Hulk": 0.9399,
+        "DoS GoldenEye": 0.934
+      },
+      "mahalanobis": {
+        "FTP-Patator": 1.0,
+        "SSH-Patator": 0.0787,
+        "DoS slowloris": 1.0,
+        "DoS Slowhttptest": 1.0,
+        "DoS Hulk": 0.9398,
+        "DoS GoldenEye": 0.9344
+      },
+      "knn_distance": {
+        "FTP-Patator": 1.0,
+        "SSH-Patator": 0.0787,
+        "DoS slowloris": 1.0,
+        "DoS Slowhttptest": 1.0,
+        "DoS Hulk": 0.9398,
+        "DoS GoldenEye": 0.9344
+      }
+    }
+  },
+  "novelty_candidates": {
+    "isolation_forest_quantile": {
+      "description": "IsolationForest over benign traffic rank-normalised to a normal distribution; score is negative path length",
+      "fit_seconds": 32.9
+    },
+    "mahalanobis": {
+      "description": "Distance to the benign mean under the benign covariance (standardised)",
+      "fit_seconds": 1.8
+    },
+    "knn_distance": {
+      "description": "Mean distance to the k nearest benign flows",
+      "fit_seconds": 30.7
+    }
+  },
+  "all_variants": {
+    "supervised_only@fpr_1pct": {
+      "threshold": 0.047746,
+      "tp": 133949,
+      "fp": 20980,
+      "tn": 768502,
+      "fn": 88886,
+      "precision": 0.864583,
+      "recall": 0.601113,
+      "f1": 0.709168,
+      "false_positive_rate": 0.026574,
+      "false_negative_rate": 0.398887,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 153.04
+    },
+    "isolation_forest_quantile_only@fpr_1pct": {
+      "threshold": 0.59066,
+      "tp": 84817,
+      "fp": 23329,
+      "tn": 766153,
+      "fn": 138018,
+      "precision": 0.784282,
+      "recall": 0.380627,
+      "f1": 0.512519,
+      "false_positive_rate": 0.02955,
+      "false_negative_rate": 0.619373,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 106.83
+    },
+    "supervised+isolation_forest_quantile@fpr_1pct": {
+      "supervised_threshold": 0.047746,
+      "novelty_threshold": 0.59066,
+      "tp": 177516,
+      "fp": 37044,
+      "tn": 752438,
+      "fn": 45319,
+      "precision": 0.827349,
+      "recall": 0.796625,
+      "f1": 0.811697,
+      "false_positive_rate": 0.046922,
+      "false_negative_rate": 0.203375,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 211.95
+    },
+    "mahalanobis_only@fpr_1pct": {
+      "threshold": 748.784837,
+      "tp": 71203,
+      "fp": 20684,
+      "tn": 768798,
+      "fn": 151632,
+      "precision": 0.774897,
+      "recall": 0.319532,
+      "f1": 0.452482,
+      "false_positive_rate": 0.026199,
+      "false_negative_rate": 0.680468,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 90.77
+    },
+    "supervised+mahalanobis@fpr_1pct": {
+      "supervised_threshold": 0.047746,
+      "novelty_threshold": 748.784837,
+      "tp": 134415,
+      "fp": 31416,
+      "tn": 758066,
+      "fn": 88420,
+      "precision": 0.810554,
+      "recall": 0.603204,
+      "f1": 0.691674,
+      "false_positive_rate": 0.039793,
+      "false_negative_rate": 0.396796,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 163.81
+    },
+    "knn_distance_only@fpr_1pct": {
+      "threshold": 5.886964,
+      "tp": 75723,
+      "fp": 23294,
+      "tn": 766188,
+      "fn": 147112,
+      "precision": 0.764747,
+      "recall": 0.339816,
+      "f1": 0.470545,
+      "false_positive_rate": 0.029505,
+      "false_negative_rate": 0.660184,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 97.81
+    },
+    "supervised+knn_distance@fpr_1pct": {
+      "supervised_threshold": 0.047746,
+      "novelty_threshold": 5.886964,
+      "tp": 134492,
+      "fp": 32637,
+      "tn": 756845,
+      "fn": 88343,
+      "precision": 0.80472,
+      "recall": 0.60355,
+      "f1": 0.689766,
+      "false_positive_rate": 0.04134,
+      "false_negative_rate": 0.39645,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 165.1
+    },
+    "supervised_only@fpr_2pct": {
+      "threshold": 0.022577,
+      "tp": 135628,
+      "fp": 29443,
+      "tn": 760039,
+      "fn": 87207,
+      "precision": 0.821634,
+      "recall": 0.608648,
+      "f1": 0.699283,
+      "false_positive_rate": 0.037294,
+      "false_negative_rate": 0.391352,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 163.06
+    },
+    "isolation_forest_quantile_only@fpr_2pct": {
+      "threshold": 0.567317,
+      "tp": 93033,
+      "fp": 38937,
+      "tn": 750545,
+      "fn": 129802,
+      "precision": 0.704956,
+      "recall": 0.417497,
+      "f1": 0.524418,
+      "false_positive_rate": 0.04932,
+      "false_negative_rate": 0.582503,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 130.36
+    },
+    "supervised+isolation_forest_quantile@fpr_2pct": {
+      "supervised_threshold": 0.022577,
+      "novelty_threshold": 0.567317,
+      "tp": 178887,
+      "fp": 55049,
+      "tn": 734433,
+      "fn": 43948,
+      "precision": 0.764684,
+      "recall": 0.802778,
+      "f1": 0.783268,
+      "false_positive_rate": 0.069728,
+      "false_negative_rate": 0.197222,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 231.09
+    },
+    "mahalanobis_only@fpr_2pct": {
+      "threshold": 464.622925,
+      "tp": 75895,
+      "fp": 28807,
+      "tn": 760675,
+      "fn": 146940,
+      "precision": 0.724867,
+      "recall": 0.340588,
+      "f1": 0.463429,
+      "false_positive_rate": 0.036488,
+      "false_negative_rate": 0.659412,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 103.43
+    },
+    "supervised+mahalanobis@fpr_2pct": {
+      "supervised_threshold": 0.022577,
+      "novelty_threshold": 464.622925,
+      "tp": 136085,
+      "fp": 45384,
+      "tn": 744098,
+      "fn": 86750,
+      "precision": 0.749908,
+      "recall": 0.610698,
+      "f1": 0.673182,
+      "false_positive_rate": 0.057486,
+      "false_negative_rate": 0.389302,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 179.26
+    },
+    "knn_distance_only@fpr_2pct": {
+      "threshold": 4.158396,
+      "tp": 80870,
+      "fp": 36789,
+      "tn": 752693,
+      "fn": 141965,
+      "precision": 0.687325,
+      "recall": 0.362914,
+      "f1": 0.475016,
+      "false_positive_rate": 0.046599,
+      "false_negative_rate": 0.637086,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 116.23
+    },
+    "supervised+knn_distance@fpr_2pct": {
+      "supervised_threshold": 0.022577,
+      "novelty_threshold": 4.158396,
+      "tp": 136286,
+      "fp": 52150,
+      "tn": 737332,
+      "fn": 86549,
+      "precision": 0.723248,
+      "recall": 0.611601,
+      "f1": 0.662755,
+      "false_positive_rate": 0.066056,
+      "false_negative_rate": 0.388399,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 186.14
+    }
+  },
+  "trivial_baselines_same_split": {
+    "decision_stump_depth_1": {
+      "tp": 80961,
+      "fp": 1727,
+      "tn": 787755,
+      "fn": 141874,
+      "precision": 0.979114,
+      "recall": 0.363323,
+      "f1": 0.529983,
+      "false_positive_rate": 0.002188,
+      "false_negative_rate": 0.636677,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 81.68
+    },
+    "decision_tree_depth_6": {
+      "tp": 82437,
+      "fp": 7105,
+      "tn": 782377,
+      "fn": 140398,
+      "precision": 0.920652,
+      "recall": 0.369946,
+      "f1": 0.527805,
+      "false_positive_rate": 0.009,
+      "false_negative_rate": 0.630054,
+      "rows": 1012317,
+      "alerts_per_1000_flows": 88.45
+    }
+  },
+  "per_family_recall": {
+    "Bot": {
+      "n": 1948,
+      "recall": 0.006674
+    },
+    "DDoS": {
+      "n": 128014,
+      "recall": 0.999758
+    },
+    "Infiltration": {
+      "n": 36,
+      "recall": 0.583333
+    },
+    "PortScan": {
+      "n": 90694,
+      "recall": 0.523486
+    },
+    "Web Attack - Brute Force": {
+      "n": 1470,
+      "recall": 0.931293
+    },
+    "Web Attack - Sql Injection": {
+      "n": 21,
+      "recall": 0.904762
+    },
+    "Web Attack - XSS": {
+      "n": 652,
+      "recall": 0.972393
+    }
+  },
+  "per_family_recall_supervised_only": {
+    "Bot": {
+      "n": 1948,
+      "recall": 0.0
+    },
+    "DDoS": {
+      "n": 128014,
+      "recall": 0.999734
+    },
+    "Infiltration": {
+      "n": 36,
+      "recall": 0.388889
+    },
+    "PortScan": {
+      "n": 90694,
+      "recall": 0.043366
+    },
+    "Web Attack - Brute Force": {
+      "n": 1470,
+      "recall": 0.931293
+    },
+    "Web Attack - Sql Injection": {
+      "n": 21,
+      "recall": 0.904762
+    },
+    "Web Attack - XSS": {
+      "n": 652,
+      "recall": 0.972393
+    }
+  },
+  "campaign_level": {
+    "definition": "one attack family within one capture file. Detected = at least one of its flows alerted. This is a different denominator from per-flow recall.",
+    "campaigns": 7,
+    "campaigns_detected": 7,
+    "campaign_detection_rate": 1.0,
+    "median_flows_until_first_detection": 1,
+    "worst_flows_until_first_detection": 203,
+    "timing_caveat": "Measured in flows elapsed within the campaign, not seconds. The MachineLearningCVE CSVs carry no timestamp column, so row order within a capture is the only ordering available.",
+    "detail": [
+      {
+        "family": "DDoS",
+        "capture": 0,
+        "flows": 128014,
+        "detected": true,
+        "flows_until_first_detection": 0,
+        "share_of_campaign_elapsed": 0.0
+      },
+      {
+        "family": "PortScan",
+        "capture": 1,
+        "flows": 90694,
+        "detected": true,
+        "flows_until_first_detection": 1,
+        "share_of_campaign_elapsed": 0.0
+      },
+      {
+        "family": "Bot",
+        "capture": 2,
+        "flows": 1948,
+        "detected": true,
+        "flows_until_first_detection": 203,
+        "share_of_campaign_elapsed": 0.1042
+      },
+      {
+        "family": "Infiltration",
+        "capture": 4,
+        "flows": 36,
+        "detected": true,
+        "flows_until_first_detection": 2,
+        "share_of_campaign_elapsed": 0.0556
+      },
+      {
+        "family": "Web Attack - Brute Force",
+        "capture": 5,
+        "flows": 1470,
+        "detected": true,
+        "flows_until_first_detection": 1,
+        "share_of_campaign_elapsed": 0.0007
+      },
+      {
+        "family": "Web Attack - XSS",
+        "capture": 5,
+        "flows": 652,
+        "detected": true,
+        "flows_until_first_detection": 0,
+        "share_of_campaign_elapsed": 0.0
+      },
+      {
+        "family": "Web Attack - Sql Injection",
+        "capture": 5,
+        "flows": 21,
+        "detected": true,
+        "flows_until_first_detection": 0,
+        "share_of_campaign_elapsed": 0.0
+      }
+    ]
+  },
+  "artifact_mb": 7.67,
+  "evaluated_at": "2026-07-21T22:03:31+00:00",
+  "honesty": [
+    "Every test flow comes from a capture day absent from training.",
+    "Both thresholds were chosen on a validation split carved out of the TRAINING days. Thursday and Friday were scored once, at final evaluation.",
+    "The novelty head never sees an attack during fitting \u2014 only benign traffic \u2014 so its detections owe nothing to knowing what the attack looks like.",
+    "Campaign-level detection uses a different denominator from per-flow recall and is labelled as such wherever it appears.",
+    "Trivial baselines are reported on the same split so the headline can be judged against how hard the task actually is."
+  ]
+}

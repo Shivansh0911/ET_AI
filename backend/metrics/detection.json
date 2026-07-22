@@ -1,0 +1,109 @@
+{
+  "dataset": "CIC-IDS2017",
+  "source": "Hugging Face mirror c01dsnap/CIC-IDS2017 (original MachineLearningCVE CSVs, Canadian Institute for Cybersecurity)",
+  "task": "binary intrusion detection (benign vs attack) on network flow features",
+  "model": "RandomForestClassifier(n_estimators=60, max_depth=18)",
+  "features_used": 69,
+  "decision_threshold": 0.5,
+  "train_rows": 800000,
+  "evaluated_at": "2026-07-21T15:40:58+00:00",
+  "artifact_mb": 2.18,
+  "confusion": {
+    "tp": 127475,
+    "fp": 949,
+    "tn": 620729,
+    "fn": 257
+  },
+  "precision": 0.99261,
+  "recall": 0.997988,
+  "f1": 0.995292,
+  "false_positive_rate": 0.001527,
+  "false_negative_rate": 0.002012,
+  "accuracy": 0.998391,
+  "roc_auc": 0.999798,
+  "test_rows": 749410,
+  "test_attack_rows": 127732,
+  "test_benign_rows": 621678,
+  "per_family_detection_rate": {
+    "BENIGN": {
+      "n": 621678,
+      "detected": 949,
+      "rate": 0.001527
+    },
+    "Bot": {
+      "n": 585,
+      "detected": 388,
+      "rate": 0.663248
+    },
+    "DDoS": {
+      "n": 38406,
+      "detected": 38397,
+      "rate": 0.999766
+    },
+    "DoS GoldenEye": {
+      "n": 3086,
+      "detected": 3080,
+      "rate": 0.998056
+    },
+    "DoS Hulk": {
+      "n": 51855,
+      "detected": 51849,
+      "rate": 0.999884
+    },
+    "DoS Slowhttptest": {
+      "n": 1569,
+      "detected": 1568,
+      "rate": 0.999363
+    },
+    "DoS slowloris": {
+      "n": 1614,
+      "detected": 1608,
+      "rate": 0.996283
+    },
+    "FTP-Patator": {
+      "n": 1780,
+      "detected": 1777,
+      "rate": 0.998315
+    },
+    "Heartbleed": {
+      "n": 4,
+      "detected": 4,
+      "rate": 1.0
+    },
+    "Infiltration": {
+      "n": 12,
+      "detected": 10,
+      "rate": 0.833333
+    },
+    "PortScan": {
+      "n": 27210,
+      "detected": 27206,
+      "rate": 0.999853
+    },
+    "SSH-Patator": {
+      "n": 966,
+      "detected": 962,
+      "rate": 0.995859
+    },
+    "Web Attack - Brute Force": {
+      "n": 441,
+      "detected": 435,
+      "rate": 0.986395
+    },
+    "Web Attack - Sql Injection": {
+      "n": 7,
+      "detected": 3,
+      "rate": 0.428571
+    },
+    "Web Attack - XSS": {
+      "n": 197,
+      "detected": 188,
+      "rate": 0.954315
+    }
+  },
+  "honesty": [
+    "Training subsamples the majority class; the test split is evaluated in full at its true class balance, so precision and FPR are not flattered by rebalancing.",
+    "Test flows are held out by a deterministic per-family round-robin and were never seen during fitting.",
+    "Original CIC-IDS2017 release \u2014 see metrics/dataset_report.json for known caveats."
+  ]
+}

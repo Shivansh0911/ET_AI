@@ -1,0 +1,8 @@
+# Offline pipeline only (dataset preparation, training, evaluation).
+# The deployed API does not need these — see requirements.txt.
+-r requirements.txt
+pandas==2.3.0
+pyyaml==6.0.3
+
+# Tests (also installed standalone in CI)
+pytest==9.0.1

@@ -1,0 +1,95 @@
+{
+  "source": "NIST National Vulnerability Database (services.nvd.nist.gov), NVD API 2.0",
+  "retrieved": "2026-07-22",
+  "note": "A small curated slice of well-known CVEs, committed for a static demo. Real CVSS scores and vectors from NVD. A production build would poll the live feed.",
+  "cves": [
+    {
+      "id": "CVE-2021-44228",
+      "cvss": 10.0,
+      "severity": "CRITICAL",
+      "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+      "published": "2021-12-10",
+      "description": "Apache Log4j2 2.0-beta9 through 2.15.0 (excluding security releases 2.12.2, 2.12.3, and 2.3.1) JNDI features used in configuration, log messages, and parameters do not protect against attacker controlled LDAP and other J"
+    },
+    {
+      "id": "CVE-2019-0708",
+      "cvss": 9.8,
+      "severity": "CRITICAL",
+      "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "published": "2019-05-16",
+      "description": "A remote code execution vulnerability exists in Remote Desktop Services formerly known as Terminal Services when an unauthenticated attacker connects to the target system using RDP and sends specially crafted requests, a"
+    },
+    {
+      "id": "CVE-2017-0144",
+      "cvss": 8.8,
+      "severity": "HIGH",
+      "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+      "published": "2017-03-17",
+      "description": "The SMBv1 server in Microsoft Windows Vista SP2; Windows Server 2008 SP2 and R2 SP1; Windows 7 SP1; Windows 8.1; Windows Server 2012 Gold and R2; Windows RT 8.1; and Windows 10 Gold, 1511, and 1607; and Windows Server 20"
+    },
+    {
+      "id": "CVE-2014-0160",
+      "cvss": 7.5,
+      "severity": "HIGH",
+      "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "published": "2014-04-07",
+      "description": "The (1) TLS and (2) DTLS implementations in OpenSSL 1.0.1 before 1.0.1g do not properly handle Heartbeat Extension packets, which allows remote attackers to obtain sensitive information from process memory via crafted pa"
+    },
+    {
+      "id": "CVE-2023-23397",
+      "cvss": 9.8,
+      "severity": "CRITICAL",
+      "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "published": "2023-03-14",
+      "description": "Microsoft Outlook Elevation of Privilege Vulnerability"
+    },
+    {
+      "id": "CVE-2021-34527",
+      "cvss": 8.8,
+      "severity": "HIGH",
+      "vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+      "published": "2021-07-02",
+      "description": "<p>A remote code execution vulnerability exists when the Windows Print Spooler service improperly performs privileged file operations. An attacker who successfully exploited this vulnerability could run arbitrary code wi"
+    },
+    {
+      "id": "CVE-2020-1472",
+      "cvss": 5.5,
+      "severity": "MEDIUM",
+      "vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N",
+      "published": "2020-08-17",
+      "description": "An elevation of privilege vulnerability exists when an attacker establishes a vulnerable Netlogon secure channel connection to a domain controller, using the Netlogon Remote Protocol (MS-NRPC). An attacker who successful"
+    },
+    {
+      "id": "CVE-2022-1388",
+      "cvss": 9.8,
+      "severity": "CRITICAL",
+      "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "published": "2022-05-05",
+      "description": "On F5 BIG-IP 16.1.x versions prior to 16.1.2.2, 15.1.x versions prior to 15.1.5.1, 14.1.x versions prior to 14.1.4.6, 13.1.x versions prior to 13.1.5, and all 12.1.x and 11.6.x versions, undisclosed requests may bypass i"
+    },
+    {
+      "id": "CVE-2023-34362",
+      "cvss": 9.8,
+      "severity": "CRITICAL",
+      "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "published": "2023-06-02",
+      "description": "In Progress MOVEit Transfer before 2021.0.6 (13.0.6), 2021.1.4 (13.1.4), 2022.0.4 (14.0.4), 2022.1.5 (14.1.5), and 2023.0.1 (15.0.1), a SQL injection vulnerability has been found in the MOVEit Transfer web application th"
+    },
+    {
+      "id": "CVE-2018-13379",
+      "cvss": 9.1,
+      "severity": "CRITICAL",
+      "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:H",
+      "published": "2019-06-04",
+      "description": "An Improper Limitation of a Pathname to a Restricted Directory (\"Path Traversal\") in Fortinet FortiOS 6.0.0 to 6.0.4, 5.6.3 to 5.6.7 and 5.4.6 to 5.4.12 and FortiProxy 2.0.0, 1.2.0 to 1.2.8, 1.1.0 to 1.1.6, 1.0.0 to 1.0."
+    },
+    {
+      "id": "CVE-2021-26855",
+      "cvss": 9.1,
+      "severity": "CRITICAL",
+      "vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+      "published": "2021-03-03",
+      "description": "Microsoft Exchange Server Remote Code Execution Vulnerability"
+    }
+  ]
+}

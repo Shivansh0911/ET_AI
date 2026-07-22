@@ -1,105 +1,135 @@
 import { useState } from 'react'
-import { PlayCircle, CheckCircle2, AlertTriangle, Clock } from 'lucide-react'
+import { Play, Check, PauseCircle, Clock } from 'lucide-react'
 import { api } from '../utils/api'
-import SeverityBadge from './SeverityBadge'
+import { Card, Button, Stat, Severity, Failed, Empty, DataRow } from './ui'
 
 export default function ResponsePanel() {
   const [playbook, setPlaybook] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
-  const [checked, setChecked] = useState({})
 
-  const handleGenerate = async () => {
-    setLoading(true)
+  const generate = async () => {
+    setBusy(true)
     setError(null)
-    setChecked({})
     try {
-      const res = await api.generatePlaybook('latest')
-      setPlaybook(res)
-    } catch (e) {
-      setError('Unable to generate playbook — check backend/Groq API key.')
+      setPlaybook(await api.generatePlaybook('latest'))
+    } catch {
+      setError('Could not draft a playbook. Check the backend and the Groq key.')
     } finally {
-      setLoading(false)
+      setBusy(false)
     }
   }
 
+  const coverage = playbook?.execution?.coverage
+  const executed = playbook?.execution?.executed || []
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-gray-200">Incident Response</h2>
-        <button
-          onClick={handleGenerate}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm hover:bg-emerald-500/20 transition disabled:opacity-50"
-        >
-          <PlayCircle size={16} />
-          {loading ? 'Generating...' : 'Generate Playbook'}
-        </button>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-title font-semibold text-ink">Response</h1>
+          <p className="mt-0.5 max-w-2xl text-meta leading-relaxed text-ink-faint">
+            The model drafts a playbook; the executor decides what can actually run, puts
+            anything above the blast-radius threshold in front of a human, and seals every
+            decision in the audit chain.
+          </p>
+        </div>
+        <Button variant="primary" onClick={generate} disabled={busy}>
+          <Play size={13} /> {busy ? 'Drafting…' : 'Draft and execute'}
+        </Button>
       </div>
 
-      {error && <div className="text-red-400 text-sm mb-4">{error}</div>}
+      {error && <Failed>{error}</Failed>}
 
-      {!playbook && !loading && (
-        <div className="bg-card border border-gray-800 rounded-xl p-8 text-center text-gray-500">
-          Click "Generate Playbook" to produce an AI-drafted incident response plan for the latest alert.
-        </div>
+      {!playbook && !busy && (
+        <Empty title="Nothing drafted">Draft a playbook to populate the audit trail.</Empty>
       )}
 
-      {loading && (
-        <div className="bg-card border border-gray-800 rounded-xl p-8 text-center text-gray-500">
-          Drafting response playbook...
-        </div>
-      )}
-
-      {playbook && !loading && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div className="lg:col-span-2 bg-card border border-gray-800 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-base font-semibold text-gray-100">{playbook.playbook_name}</h3>
-              <SeverityBadge severity={playbook.severity} />
-            </div>
-            <ul className="space-y-2">
-              {(playbook.steps || []).map((step, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <input
-                    type="checkbox"
-                    checked={!!checked[i]}
-                    onChange={() => setChecked((c) => ({ ...c, [i]: !c[i] }))}
-                    className="mt-1 accent-emerald-500"
-                  />
-                  <span className={`text-sm ${checked[i] ? 'line-through text-gray-600' : 'text-gray-300'}`}>
-                    {step}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+      {playbook && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Card
+            title={playbook.playbook_name}
+            hint={playbook.note}
+            aside={<Severity level={playbook.severity} />}
+            className="lg:col-span-2"
+          >
+            <ol className="space-y-2">
+              {(playbook.steps || []).map((step, i) => {
+                const ran = executed.find((e) => e.step === step)
+                return (
+                  <li key={i} className="flex items-start gap-2.5">
+                    <span className={`font-mono mt-px text-[11px] ${
+                      ran ? (ran.status === 'executed' ? 'text-good' : 'text-severity-medium')
+                          : 'text-ink-faint'}`}>
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-body text-ink-muted">{step}</p>
+                      {ran && (
+                        <p className="font-mono tabular mt-0.5 text-meta text-ink-faint">
+                          {ran.action} · blast {ran.blast_radius} · ledger #{ran.ledger_seq}
+                          {ran.status !== 'executed' && (
+                            <span className="text-severity-medium"> · held for approval</span>
+                          )}
+                        </p>
+                      )}
+                      {!ran && (
+                        <p className="mt-0.5 text-meta text-ink-faint">
+                          no automated form — analyst work
+                        </p>
+                      )}
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
+          </Card>
 
           <div className="space-y-4">
-            <div className="bg-card border border-gray-800 rounded-xl p-4">
-              <h3 className="text-sm font-semibold text-gray-400 mb-2">Automated Actions</h3>
-              <ul className="space-y-2">
-                {(playbook.automated_actions || []).map((action, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-emerald-400">
-                    <CheckCircle2 size={14} className="mt-0.5 shrink-0" />
-                    {action}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="bg-card border border-gray-800 rounded-xl p-4 space-y-3">
-              <div className="flex items-center gap-2 text-sm text-gray-400">
-                <Clock size={14} />
-                Est. Containment: <span className="mono text-gray-200">{playbook.estimated_containment_time}</span>
-              </div>
-              {playbook.escalation_required && (
-                <div className="flex items-center gap-2 text-sm text-red-400">
-                  <AlertTriangle size={14} />
-                  Escalation Required
+            {coverage && (
+              <Card title="Automation coverage">
+                <Stat label="Executed autonomously" value={`${coverage.coverage_pct}%`} size="display" />
+                <div className="mt-3">
+                  <DataRow label="playbook steps">{coverage.playbook_steps}</DataRow>
+                  <DataRow label="ran autonomously">
+                    <span className="text-good">{coverage.executed_autonomously}</span>
+                  </DataRow>
+                  <DataRow label="held for a human">
+                    <span className="text-severity-medium">{coverage.held_for_human_approval}</span>
+                  </DataRow>
+                  <DataRow label="no automated form">{coverage.manual_only}</DataRow>
                 </div>
-              )}
-            </div>
+                <p className="mt-2 text-meta leading-relaxed text-ink-faint">
+                  {coverage.definition}
+                </p>
+              </Card>
+            )}
+
+            <Card title="Actions taken">
+              <div className="space-y-2">
+                {executed.map((action) => {
+                  const held = action.status !== 'executed'
+                  const Icon = held ? PauseCircle : Check
+                  return (
+                    <div key={action.ledger_seq} className="flex items-start gap-2">
+                      <Icon size={13} className={held ? 'mt-0.5 text-severity-medium' : 'mt-0.5 text-good'} />
+                      <div className="min-w-0">
+                        <div className="font-mono tabular text-[12px] text-ink">{action.action}</div>
+                        <div className="text-meta text-ink-faint">{action.description}</div>
+                        {held && (
+                          <div className="text-[11px] text-severity-medium">{action.gate}</div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div className="mt-3 flex items-center gap-1.5 border-t border-line/60 pt-2
+                text-meta text-ink-faint">
+                <Clock size={12} /> estimated containment{' '}
+                <span className="font-mono tabular text-ink-muted">{playbook.estimated_containment_time}</span>
+              </div>
+            </Card>
           </div>
         </div>
       )}
