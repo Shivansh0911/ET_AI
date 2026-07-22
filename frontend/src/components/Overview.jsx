@@ -195,6 +195,23 @@ export default function Overview() {
         </ResponsiveContainer>
       </Card>
 
+      {dashboard.alert_summary && dashboard.alert_summary.reduction_factor > 1 && (
+        <Card title="Alert load" tint="neutral"
+          hint="Detection is unchanged; this is what an analyst actually sees. Raw per-flow detections group into the campaigns they belong to.">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+            <Stat label="Raw detections" value={dashboard.alert_summary.raw_detections} size="tabular" tone="muted" />
+            <span className="pb-1 text-ink-faint">→</span>
+            <Stat label="Grouped alerts" value={dashboard.alert_summary.aggregated_alerts} size="tabular" tone="good"
+              note={`${dashboard.alert_summary.reduction_factor}x fewer to triage`} />
+            {dashboard.alert_summary.per_operating_point?.map((p) => (
+              <Stat key={p.label} label={p.label} size="tabular"
+                value={`${p.aggregated_per_1000}/1k`} note={`raw ${p.raw_per_1000}/1k`} />
+            ))}
+          </div>
+          <div className="mt-3 border-t border-line pt-3"><Note>{dashboard.alert_summary.at_scale}</Note></div>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
         <div className="xl:col-span-3">
           <TriageQueue

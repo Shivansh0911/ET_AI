@@ -167,6 +167,48 @@ def fusion() -> dict:
     return {"available": True, "provenance": "measured", **report}
 
 
+def detection_speed() -> dict:
+    """Our MEASURED time-to-detect against a CITED industry baseline. Never merged into one.
+
+    The measured side is real: flows-from-campaign-onset to first alert (median 1, worst 203)
+    across the 7 campaigns, from metrics/baseline.json. It is expressed in flows, not seconds,
+    because the CSVs carry no timestamp — stated, not smoothed over. The baseline side is cited
+    industry dwell time and mean-time-to-contain, attributed, and NOT presented as ours.
+    """
+    report = _read("baseline.json") or {}
+    campaign = report.get("campaign_level", {})
+    return {
+        "measured": {
+            "provenance": "measured",
+            "metric": "flows from campaign onset to first alert (our MTTD analogue)",
+            "campaigns_detected": campaign.get("campaigns_detected"),
+            "campaigns": campaign.get("campaigns"),
+            "median_flows_to_first_detection": campaign.get("median_flows_until_first_detection"),
+            "worst_flows_to_first_detection": campaign.get("worst_flows_until_first_detection"),
+            "unit_caveat": campaign.get("timing_caveat"),
+        },
+        "cited_baseline": {
+            "provenance": "cited",
+            "mttd_days": 10,
+            "mttd_source": "Mandiant M-Trends 2024 — global median dwell time before detection.",
+            "mttc_days": 73,
+            "mttc_note": "Mean time to identify + contain a breach.",
+            "mttc_source": "IBM Cost of a Data Breach 2024 (~204 days to identify, ~73 to contain).",
+        },
+        "framing": {
+            "provenance": "cited",
+            "statement": "Public-sector breaches are typically discovered weeks-to-months after "
+                         "infiltration; compressing detection toward hours is the stated goal of "
+                         "PS#7. Our measured detect-latency is a lab figure on a benchmark, not a "
+                         "field MTTD — the two are shown side by side, never combined into one "
+                         "'X% faster' number, because that comparison would be dishonest.",
+            "cost_reference": "IBM 2024 puts the global average breach at USD 4.88M; faster "
+                              "detection is the lever most correlated with lower cost. Cited, "
+                              "not a claim about this system.",
+        },
+    }
+
+
 def dataset_report() -> dict:
     return _read("dataset_report.json") or {"available": False}
 
@@ -183,6 +225,7 @@ def snapshot(latency: dict | None = None, automation: dict | None = None) -> dic
         "automation": {"provenance": "measured", **automation} if automation else
                       {"available": False, "reason": "no playbook executed yet"},
         "baseline": BASELINE_DWELL,
+        "detection_speed": detection_speed(),
         "note": "Values marked 'measured' were produced by this repository's evaluation "
                 "scripts or timed at request time. Values marked 'cited' come from "
                 "published research and are not our own measurements.",

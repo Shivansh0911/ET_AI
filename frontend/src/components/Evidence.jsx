@@ -21,6 +21,7 @@ export default function Evidence() {
   if (!metrics) return <Loading>Reading evaluation artifacts</Loading>
 
   const { detection, continual_learning: loop, attribution, fusion, automation, latency, baseline } = metrics
+  const speed = metrics.detection_speed
   const campaignSetting = loop?.settings?.[0]
   const campaign = detection?.campaign_level
 
@@ -273,6 +274,39 @@ export default function Evidence() {
           )}
         </Card>
       </div>
+
+      {speed && (
+        <Card title="Detection speed — measured vs cited" tint="neutral">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-body font-medium text-ink">Our measured latency</span>
+                <Provenance kind="measured" />
+              </div>
+              <DataRow label="campaigns detected">
+                {speed.measured.campaigns_detected} / {speed.measured.campaigns}
+              </DataRow>
+              <DataRow label="median flows to first alert">{speed.measured.median_flows_to_first_detection}</DataRow>
+              <DataRow label="worst case">{speed.measured.worst_flows_to_first_detection}</DataRow>
+              <Note>{speed.measured.unit_caveat}</Note>
+            </div>
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-body font-medium text-ink">Industry baseline</span>
+                <Provenance kind="cited" />
+              </div>
+              <DataRow label="median dwell time">{speed.cited_baseline.mttd_days} days</DataRow>
+              <DataRow label="mean time to contain">{speed.cited_baseline.mttc_days} days</DataRow>
+              <Note>{speed.cited_baseline.mttd_source}</Note>
+              <Note>{speed.cited_baseline.mttc_source}</Note>
+            </div>
+          </div>
+          <div className="mt-4 border-t border-line pt-3.5">
+            <Note>{speed.framing.statement}</Note>
+            <Note>{speed.framing.cost_reference}</Note>
+          </div>
+        </Card>
+      )}
 
       <Card title="Comparison baseline" aside={<Provenance kind="cited" />} hint={baseline?.source}>
         <div className="flex flex-wrap items-center gap-8">

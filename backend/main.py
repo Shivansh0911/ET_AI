@@ -18,7 +18,7 @@ from agents.attack_mapper import build_kill_chain, predict_next_move
 from agents.copilot import chat_with_copilot
 from agents.response_orchestrator import generate_playbook
 from agents.threat_intel import search_threat_intel
-from engine import actor, attribution, feedback, fusion, graph, ingest, ledger, ot, replay, twin, vuln
+from engine import actor, alerts, attribution, feedback, fusion, graph, ingest, ledger, ot, replay, twin, vuln
 from engine.assets import ASSETS, PROVENANCE
 from engine.metrics_registry import attribution as attribution_metrics
 from engine.metrics_registry import continual as metrics_continual
@@ -103,6 +103,24 @@ def _rescore(seed: int = 7) -> None:
 _rescore()
 
 
+def _alert_summary() -> dict:
+    """Raw-vs-aggregated alert load for the current window, at both operating points."""
+    agg = alerts.aggregate(_detections)
+    points = snapshot().get("detection", {}).get("operating_points", [])
+    projected = [{"label": p["label"], "raw_per_1000": p["alerts_per_1000_flows"],
+                  "aggregated_per_1000": alerts.per_1000(p["alerts_per_1000_flows"],
+                                                         agg["reduction_factor"])}
+                 for p in points]
+    return {"raw_detections": agg["raw_detections"],
+            "aggregated_alerts": agg["aggregated_alerts"],
+            "reduction_factor": agg["reduction_factor"],
+            "method": agg["method"],
+            "per_operating_point": projected,
+            "at_scale": "On the full benchmark the same grouping collapses hundreds of "
+                        "thousands of attack flows to a handful of campaigns — see the "
+                        "campaign metric on Evidence."}
+
+
 def _cached(key: str, produce):
     """Serve repeated LLM answers from a short TTL cache so a live demo cannot rate-limit."""
     hit = _llm_cache.get(key)
@@ -179,6 +197,7 @@ def get_dashboard():
         "data_provenance": PROVENANCE,
         "stream_source": _stream["source"],
         "latency": _stream["latency"],
+        "alert_summary": _alert_summary(),
     }
 
 

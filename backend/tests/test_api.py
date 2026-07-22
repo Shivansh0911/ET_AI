@@ -417,3 +417,43 @@ def test_twin_labels_topology_simulated(client):
 def test_twin_entry_is_never_in_its_own_blast_radius(client):
     r = client.get("/api/twin", params={"entry": "NIC-GOV"}).json()
     assert all(x["asset"] != "NIC-GOV" for x in r["reachable"])
+
+
+# ─── alert aggregation (Technical Excellence: taming the alert load) ───
+
+def test_alert_aggregation_reduces_the_raw_stream(client):
+    summary = client.get("/api/dashboard").json()["alert_summary"]
+    assert summary["aggregated_alerts"] <= summary["raw_detections"]
+    assert summary["reduction_factor"] >= 1.0
+    # Both operating points get a raw and an aggregated per-1000 figure.
+    for p in summary["per_operating_point"]:
+        assert p["aggregated_per_1000"] <= p["raw_per_1000"]
+
+
+def test_aggregation_never_drops_a_campaign():
+    from engine import alerts as alert_engine
+    detections = [
+        {"id": "a", "asset": "AIIMS-Delhi", "mitre_id": "T1046", "severity": "high",
+         "anomaly_score": 0.9, "timestamp": "2026-07-22T10:00:00+00:00", "location": "Delhi"},
+        {"id": "b", "asset": "AIIMS-Delhi", "mitre_id": "T1046", "severity": "critical",
+         "anomaly_score": 0.95, "timestamp": "2026-07-22T11:00:00+00:00", "location": "Delhi"},
+        {"id": "c", "asset": "SBI-Core", "mitre_id": "T1110", "severity": "high",
+         "anomaly_score": 0.8, "timestamp": "2026-07-22T10:00:00+00:00", "location": "Mumbai"},
+    ]
+    agg = alert_engine.aggregate(detections)
+    # Two distinct (asset, technique) campaigns -> two alerts, none lost; the two AIIMS flows fold.
+    assert agg["aggregated_alerts"] == 2
+    aiims = next(a for a in agg["alerts"] if a["asset"] == "AIIMS-Delhi")
+    assert aiims["flow_count"] == 2 and aiims["severity"] == "critical"
+
+
+# ─── MTTD/MTTR vs cited baseline (Business Impact) ───
+
+def test_detection_speed_separates_measured_from_cited(client):
+    speed = client.get("/api/metrics").json()["detection_speed"]
+    assert speed["measured"]["provenance"] == "measured"
+    assert speed["cited_baseline"]["provenance"] == "cited"
+    # The two are never combined into one "X% faster" figure.
+    assert "never combined" in speed["framing"]["statement"].lower()
+    assert speed["measured"]["campaigns_detected"] is not None
+    assert "Mandiant" in speed["cited_baseline"]["mttd_source"]
