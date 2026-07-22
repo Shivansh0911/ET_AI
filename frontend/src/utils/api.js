@@ -36,6 +36,7 @@ export const api = {
   getCompoundAnalysis: () => request('/api/compound-analysis'),
   getMetrics: () => request('/api/metrics'),
   getIncidents: () => request('/api/incidents'),
+  getGraph: () => request('/api/graph'),
   getAttribution: (limit = 12) => request(`/api/attribution?limit=${limit}`),
   getAudit: (limit = 100) => request(`/api/audit?limit=${limit}`),
   getFeedback: () => request('/api/feedback'),

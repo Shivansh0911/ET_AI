@@ -250,3 +250,30 @@ def test_zeek_adapter_survives_malformed_input():
 
     result = ingest.score_conn_log(["", "#comment", "not json", '{"uid":"x"}'])
     assert result["scored"] == 1  # only the parseable record counts
+
+
+# ─── attack graph (Innovation: graph AI / lateral movement) ───
+
+def test_graph_has_three_planes_and_is_honest(client):
+    g = client.get("/api/graph").json()
+    kinds = {n["kind"] for n in g["nodes"]}
+    assert kinds == {"source", "asset", "technique"}, "graph must span sources, assets, techniques"
+    assert g["edges"], "a graph with no edges is not a graph"
+    # It must not claim confirmed lateral movement.
+    assert "not confirmed" in g["caveat"].lower()
+
+
+def test_graph_longest_path_runs_source_to_technique(client):
+    g = client.get("/api/graph").json()
+    if not g["longest_path"]:
+        pytest.skip("no multi-hop path in this window")
+    kinds = [n["kind"] for n in g["longest_path"]]
+    assert kinds[0] == "source" and kinds[-1] == "technique", \
+        "a multi-hop attack path should start at a source and end at a technique"
+
+
+def test_graph_pivots_have_converging_sources(client):
+    g = client.get("/api/graph").json()
+    for pivot in g["pivots"]:
+        assert pivot["converging_sources"] >= 2, "a pivot needs at least two sources converging"
+        assert pivot["techniques"] >= 1, "a pivot needs host-level technique activity"

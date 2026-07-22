@@ -18,7 +18,7 @@ from agents.attack_mapper import build_kill_chain, predict_next_move
 from agents.copilot import chat_with_copilot
 from agents.response_orchestrator import generate_playbook
 from agents.threat_intel import search_threat_intel
-from engine import attribution, feedback, fusion, ingest, ledger, replay
+from engine import attribution, feedback, fusion, graph, ingest, ledger, replay
 from engine.assets import ASSETS, PROVENANCE
 from engine.metrics_registry import attribution as attribution_metrics
 from engine.metrics_registry import continual as metrics_continual
@@ -63,6 +63,7 @@ _last_coverage: dict | None = None  # automation coverage from the most recent p
 _stream: dict = {}
 _detections: list = []
 _incidents: dict = {}
+_graph: dict = {}
 
 
 def _rescore(seed: int = 7) -> None:
@@ -75,6 +76,8 @@ def _rescore(seed: int = 7) -> None:
     _stream = replay.build_stream(STREAM_SIZE, seed=seed)
     _detections = detect_anomalies(_stream["events"])
     _incidents = fusion.correlate(_stream["events"], _hosts)
+    global _graph
+    _graph = graph.build(_detections, _incidents)
     _vector_index.clear()
     for event, vector in zip(_stream["events"], _stream["vectors"]):
         _vector_index[event["id"]] = (vector, event["base_score"])
@@ -214,6 +217,17 @@ def ingest_coverage():
     The honest answer to "could you deploy this?" — a number rather than a shrug.
     """
     return ingest.coverage()
+
+
+@app.get("/api/graph")
+def get_graph():
+    """The attack graph — external sources, targeted assets and ATT&CK techniques as one graph.
+
+    Lets a compound multi-hop path (source -> asset -> technique) and a convergence pivot be
+    seen rather than read out of a list. Inferred topology, not confirmed lateral movement, and
+    the response says so.
+    """
+    return _graph
 
 
 @app.get("/api/incidents")
