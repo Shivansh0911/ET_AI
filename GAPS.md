@@ -10,10 +10,10 @@ checked against the code as it stands.
 | Area | State | Evidence |
 |---|---|---|
 | **Behavioural Anomaly Detection Engine** | **CLOSED** | `ml/train_hybrid.py` now fits a novelty head on **benign traffic only** alongside the supervised classifier. It never sees an attack during fitting, so what it catches owes nothing to prior knowledge. PortScan went 4.3% → 52.3% and overall per-flow recall 60.1% → 79.7%. |
-| **APT Campaign Attribution & Prediction** | **PARTIAL** | Technique attribution is real and measured (54.1% top-1, `ml/eval_attribution.py`). Next-move prediction exists but is an LLM projection, correctly labelled. Missing: CERT-In advisories as a source, and *campaign*-level attribution (we map to techniques, not to named actors). |
+| **APT Campaign Attribution & Prediction** | **CLOSED** | engine/actor.py ranks named APT groups by TTP overlap over the ATT&CK knowledge graph, predicts next techniques from their playbooks, and lists mitigations. Probabilistic, labelled candidates. CERT-In advisory corpus still absent. |
 | **Autonomous Incident Response Orchestrator** | **HAVE** | `engine/actions.py` — typed catalog, blast-radius gate at 10 endpoints, 71.4% coverage measured, every action hash-chained. Actions are simulated and say so. |
 | **Government Infrastructure Vulnerability Prioritisation** | **CLOSED (MVP)** | engine/vuln.py ranks real NVD CVEs by CVSS x exposure x live attack activity into a remediation queue. Asset-to-software mapping is illustrative; CVEs and formula are real. |
-| **Cyber Resilience Digital Twin** — attack-path modelling, red-team simulation | **MISSING ENTIRELY** | No simulation layer. |
+| **Cyber Resilience Digital Twin** | **CLOSED (scoped)** | engine/twin.py simulates attacker propagation, blast radius and the top chokepoint over real exposure/CVE data; topology and propagation labelled simulated. |
 
 ## 2. "Suggested technologies"
 
@@ -23,7 +23,7 @@ checked against the code as it stands.
 | **Unsupervised anomaly detection (UEBA)** | **CLOSED** | IsolationForest over rank-normalised benign traffic, served as the second head. |
 | **Graph AI** (attack path, lateral movement) | **CLOSED** | engine/graph.py builds a source->asset->technique graph with pivots and longest-path. Inferred topology, labelled not-confirmed-lateral-movement. |
 | RAG over threat intel / CVE / CERT-In | **PARTIAL, improved** | Tavily search-and-summarise, plus a real NVD CVE slice now drives the remediation queue. Still no CERT-In advisory corpus. |
-| Knowledge graph (ATT&CK TTP mapping) | **PARTIAL** | 697 techniques with tactics and a revocation map — a *table*, not a graph. No relationships traversed. |
+| Knowledge graph (ATT&CK TTP mapping) | **CLOSED** | ml/trim_attack_graph.py + engine/actor.py traverse group→technique and technique→mitigation edges from real STIX. |
 | SOAR integration & response automation | **HAVE** | See orchestrator above. |
 
 ## 3. Evaluation focus
@@ -100,3 +100,14 @@ video is the user's to record.
 Still open, still named rather than faked: the full Cyber Resilience Digital Twin, CERT-In
 advisory RAG, and named-actor campaign attribution. These need corpora or simulation we cannot
 build convincingly under deadline.
+
+
+---
+
+## Update after the fourth pass (definitely-win)
+
+Closed: named-actor APT attribution, a real (traversed) ATT&CK knowledge graph, the cyber
+resilience digital twin, alert aggregation, and a measured-vs-cited detection-speed comparison.
+Navigation consolidated into four capability sections with a guided tour. 61 tests.
+
+Still open: CERT-In advisory RAG (corpus risk) and a full production deployment. Named, not faked.

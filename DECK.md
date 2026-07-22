@@ -64,7 +64,9 @@ a **detector that learns from analyst clicks**, and a **tamper-evident audit cha
 - **Cross-domain correlation** — incidents that span **IT and OT** on one asset; 9 incidents no
   single sensor would raise.
 - **Attack graph** — sources → assets → techniques, with convergence pivots.
+- **Actor attribution** — likely APT groups by TTP overlap, their next move, and mitigations, over a real ATT&CK knowledge graph.
 - **Vulnerability prioritisation** — real CVEs ranked by CVSS × exposure × live attack activity.
+- **Resilience twin** — attack-path simulation: blast radius, chokepoint, and what hardening buys.
 - **Tamper-evident auditability** — edit one ledger row, verification names the entry that broke.
 
 ---

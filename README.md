@@ -108,6 +108,9 @@ could not be shown to beat a static baseline.
 | Attack graph | source -> asset -> technique with convergence pivots and longest-path |
 | CVE remediation | real NVD CVEs ranked by CVSS x exposure x live activity |
 | IT+OT correlation | incidents that span network and a simulated Modbus/ICS plane |
+| Actor attribution | likely APT groups by TTP overlap + next move + mitigations, over the ATT&CK graph |
+| Resilience twin | attack-path simulation: blast radius, chokepoint, what-if hardening |
+| Alert aggregation | per-flow detections grouped into the campaigns an analyst triages |
 
 ---
 
@@ -149,7 +152,7 @@ python ml/train_hybrid.py          # both heads + calibration -> metrics/baselin
 python ml/eval_continual.py        # the learning result      -> metrics/continual.json
 python ml/trim_mitre.py && python ml/prepare_attack_logs.py && python ml/eval_attribution.py
 python ml/eval_fusion.py
-python -m pytest tests -q          # 52 tests
+python -m pytest tests -q          # 61 tests
 ```
 
 The tests assert the claims, not just the routes: that the cross-capture split is the headline,

@@ -136,3 +136,33 @@ record) and the **rebuilt deck** (content ready in DECK.md).
 
 None of those are cheap, and attempting them now would risk the rigour that is the moat. The
 highest-value remaining action is not more code — it is the video and the deck.
+
+---
+
+## Re-score after the "definitely win" build
+
+Five more capabilities landed: named-actor attribution over a real ATT&CK knowledge graph, a
+cyber-resilience digital twin, alert aggregation, a measured-vs-cited detection-speed panel, and
+a consolidated four-section navigation with a guided tour. 61 tests, all green; every new
+capability live-verified.
+
+| Criterion | Weight | Prev | Now | What moved it |
+|---|---|---|---|---|
+| Innovation | 25% | 9 | **9** | Digital twin (attack-path simulation, chokepoint) + graph-based actor attribution. Genuinely broad now; the subjective ceiling holds it at 9. |
+| Business Impact | 25% | 7 | **9** | Actor attribution → "who, what next, how to stop it"; CVE queue; IT/OT; the twin turns hardening into a measured investment decision; MTTD vs a cited baseline. |
+| Technical Excellence | 20% | 8 | **9** | The ATT&CK "table" is now a traversed knowledge graph; alert aggregation; 61 tests that assert the claims. RAG is still shallow — short of 10. |
+| Scalability | 15% | 6 | **6** | Unchanged this round. Durable ledger + auth + worker path already banked; a real live deploy is the next lever, still pending. |
+| UX | 15% | 8 | **8** | Grouped nav + guided tour + the interactive twin help; ten screens is still dense, so a full design-polish pass separates 8 from 9. |
+
+**Weighted: ~7.9 → ~8.4/10.**
+
+**Which hit 9:** Innovation, Business Impact, Technical Excellence — the three the build targeted.
+**Which did not:** Scalability (6, untouched this round) and UX (8, dense). Both are named, not hidden.
+
+### The remaining lever
+
+The single highest-value action left is **item 5 — deploy live and record the demo.** A working
+public URL lifts Scalability and Business-Impact credibility at once, and the video is what a
+hackathon is actually judged on. That is now the bottleneck, not more features. Attempting the
+last 9→10 items (named-campaign attribution, RAG over a real advisory corpus, a design-polish
+pass) would trade the rigour that is the moat for marginal points — not worth it under deadline.
