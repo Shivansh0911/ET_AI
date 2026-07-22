@@ -21,7 +21,8 @@ export default function Evidence() {
   if (!metrics) return <Loading>Reading evaluation artifacts</Loading>
 
   const { detection, continual_learning: loop, attribution, fusion, automation, latency, baseline } = metrics
-  const campaign = loop?.settings?.[0]
+  const campaignSetting = loop?.settings?.[0]
+  const campaign = detection?.campaign_level
 
   return (
     <div className="space-y-5">
@@ -33,12 +34,18 @@ export default function Evidence() {
       {/* Headline figures first. Everything below is the working behind them. */}
       <StatStrip columns={5}>
         <Card>
-          <Stat label="Recall, frozen" value={pct1(detection?.recall)} tone="bad" size="tabular"
-            note="on unseen captures" />
+          <Stat label="Campaigns detected"
+            value={campaign ? `${campaign.campaigns_detected}/${campaign.campaigns}` : '—'}
+            tone="good" size="tabular"
+            note="every attack campaign, caught at all" />
+        </Card>
+        <Card>
+          <Stat label="Flows caught" value={pct1(detection?.recall)} size="tabular"
+            note="per-flow recall, unseen captures" />
         </Card>
         <Card>
           <Stat label={`After ${loop?.headline_label_budget ?? 500} verdicts`}
-            value={pct1(campaign?.at_headline_budget?.recall)} tone="good" size="tabular"
+            value={pct1(campaignSetting?.at_headline_budget?.recall)} tone="good" size="tabular"
             note="same held-out data" />
         </Card>
         <Card>
@@ -63,7 +70,7 @@ export default function Evidence() {
             {loop.settings.map((setting) => {
               const improved = setting.delta_at_headline.recall > 0.01
               return (
-                <div key={setting.setting} className="rounded-lg border border-line bg-surface-0/60 p-4">
+                <div key={setting.setting} className="rounded-lg border border-line bg-surface-2 p-4">
                   <div className="flex items-center justify-between gap-3">
                     <h3 className="text-body font-medium text-ink">
                       {setting.setting === 'campaign_assisted'
@@ -135,7 +142,8 @@ export default function Evidence() {
               <Stat label="F1" value={pct(detection.f1)} size="tabular" />
               <Stat label="False positives" value={pct(detection.false_positive_rate)} tone="good" size="tabular" />
               <Stat label="False negatives" value={pct(detection.false_negative_rate)} tone="bad" size="tabular" />
-              <Stat label="ROC AUC" value={detection.roc_auc?.toFixed(4)} size="tabular" />
+              <Stat label="ROC AUC" value={detection.roc_auc?.toFixed(4)} size="tabular"
+                note="supervised head" />
             </StatStrip>
 
             <div className="mt-5 grid grid-cols-1 gap-5 lg:grid-cols-2">

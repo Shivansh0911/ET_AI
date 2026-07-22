@@ -34,7 +34,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-surface-0">
-      <header className="sticky top-0 z-20 border-b border-line bg-surface-1/85 backdrop-blur-md">
+      <header className="sticky top-0 z-20 border-b border-line bg-surface-1/90 backdrop-blur-md shadow-card">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-8 gap-y-1 px-6">
           <button onClick={() => setActive('overview')} className="py-3.5" aria-label="CyberSentinel home">
             <Logo size={30} />

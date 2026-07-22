@@ -58,12 +58,20 @@ export default function About() {
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <Card tint="warn" title="Detectors go stale the day they ship">
             <p className="text-body leading-relaxed text-ink-muted">
-              A model trained on last year’s attacks recognises last year’s attacks. Put it in
-              front of traffic it has never seen and it misses most of it. Ours catches{' '}
+              A model trained on last year’s attacks recognises last year’s attacks. So we run a
+              second detector alongside it, fitted only on what normal traffic looks like — it
+              never sees an attack during training, which is how it flags families nobody has
+              labelled yet. Together they catch{' '}
               <Mono className="text-ink">
                 {detection ? `${(detection.recall * 100).toFixed(0)}%` : '—'}
               </Mono>{' '}
-              on capture days it was not trained on. We publish that number rather than hiding it.
+              of malicious flows on capture days neither was trained on, and{' '}
+              <Mono className="text-ink">
+                {detection?.campaign_level
+                  ? `${detection.campaign_level.campaigns_detected} of ${detection.campaign_level.campaigns}`
+                  : '—'}
+              </Mono>{' '}
+              attack campaigns outright.
             </p>
           </Card>
           <Card tint="neutral" title="Analysts already know the answer">
@@ -83,7 +91,7 @@ export default function About() {
         <Card>
           <StatStrip columns={3}>
             <Stat label="Before any feedback" value={before != null ? `${(before * 100).toFixed(1)}%` : '—'}
-              tone="bad" note="attacks caught, frozen model" />
+              note="malicious flows caught, frozen detector" />
             <Stat label={`After ${loop?.headline_label_budget ?? 500} verdicts`}
               value={after != null ? `${(after * 100).toFixed(1)}%` : '—'} tone="good"
               note="same held-out data, nothing retuned by hand" />

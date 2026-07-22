@@ -13,12 +13,12 @@ export function Card({ title, hint, aside, children, className = '', bare = fals
   const tints = {
     accent: 'border-b-accent-line bg-accent-soft',
     neutral: 'border-b-line bg-surface-2',
-    warn: 'border-b-severity-medium/30 bg-severity-medium/[0.07]',
+    warn: 'border-b-severity-medium/25 bg-severity-medium/[0.06]',
   }
   const banded = Boolean(tint && (title || aside))
 
   return (
-    <section className={`overflow-hidden rounded-card border border-line bg-surface-1 ${className}`}>
+    <section className={`overflow-hidden rounded-card border border-line bg-surface-1 shadow-card ${className}`}>
       {(title || aside) && (
         <header className={`flex items-start justify-between gap-4 px-5 ${
           banded ? `border-b py-3.5 ${tints[tint]}` : 'pt-4'
@@ -77,7 +77,7 @@ export function StatStrip({ children, columns = 4 }) {
 export function Button({ children, onClick, disabled, variant = 'quiet', size = 'md', title, active }) {
   const variants = {
     primary: 'bg-accent-soft border-accent-line text-accent hover:bg-accent/20',
-    quiet: 'bg-surface-2 border-line text-ink-muted hover:text-ink hover:border-line-strong',
+    quiet: 'bg-surface-1 border-line-strong text-ink-muted shadow-card hover:text-ink hover:bg-surface-2',
     good: 'bg-good/10 border-good/30 text-good hover:bg-good/20',
     bad: 'bg-bad/10 border-bad/30 text-bad hover:bg-bad/20',
   }
@@ -93,10 +93,10 @@ export function Button({ children, onClick, disabled, variant = 'quiet', size = 
 }
 
 const SEVERITY_STYLE = {
-  critical: 'text-severity-critical border-severity-critical/35 bg-severity-critical/10',
-  high: 'text-severity-high border-severity-high/35 bg-severity-high/10',
-  medium: 'text-severity-medium border-severity-medium/35 bg-severity-medium/10',
-  low: 'text-severity-low border-severity-low/35 bg-severity-low/10',
+  critical: 'text-severity-critical border-severity-critical/30 bg-severity-critical/[0.07]',
+  high: 'text-severity-high border-severity-high/30 bg-severity-high/[0.07]',
+  medium: 'text-severity-medium border-severity-medium/30 bg-severity-medium/[0.07]',
+  low: 'text-severity-low border-severity-low/30 bg-severity-low/[0.07]',
   info: 'text-severity-info border-line-strong bg-surface-2',
 }
 
@@ -117,34 +117,34 @@ export function Severity({ level = 'info', dot = false }) {
 
 export function severityHex(level) {
   return {
-    critical: '#f0616a', high: '#f08a3c', medium: '#e0b53c',
-    low: '#5b9ad6', info: '#717d90',
-  }[level] || '#717d90'
+    critical: '#c62828', high: '#b45309', medium: '#946200',
+    low: '#1d4ed8', info: '#67707e',
+  }[level] || '#67707e'
 }
 
-export const VIZ = ['#6d8cf5', '#46b8a8', '#9b7bf0', '#5aa9e6', '#7e8aa3']
+export const VIZ = ['#2f56d9', '#0f766e', '#6d28d9', '#0369a1', '#526074']
 
 /* SVG needs literal values, so the map's palette is exported here rather than written inline
    in the component — same rule as everything else: one place to change it. */
 export const MAP = {
-  land: '#18212f',
-  landHover: '#212c3e',
-  border: '#2a3648',
-  borderHover: '#3b4a61',
-  nominal: '#6d8cf5',
-  label: '#eef1f6',
-  labelMuted: '#a3aebf',
+  land: '#eaeef3',
+  landHover: '#dfe5ed',
+  border: '#cfd6e0',
+  borderHover: '#aab5c4',
+  nominal: '#2f56d9',
+  label: '#10151c',
+  labelMuted: '#54606f',
 }
 /* Chart stroke colours. SVG cannot read Tailwind classes, so anything drawn into a chart
    pulls its colour from here rather than hard-coding one at the call site. */
 export const SERIES = {
-  good: '#3fb47f',
-  bad: '#f0616a',
-  muted: '#717d90',
-  inactive: '#3b4a61',
+  good: '#15803d',
+  bad: '#c62828',
+  muted: '#67707e',
+  inactive: '#cfd6e0',
 }
-export const GRID = '#2a3648'
-export const AXIS = { fill: '#717d90', fontSize: 11 }
+export const GRID = '#edf0f4'
+export const AXIS = { fill: '#67707e', fontSize: 11 }
 
 /* Recharts renders tooltip labels and item names using its own defaults, which come out near
    black on our dark surface — the values were unreadable. contentStyle alone does not fix it:
@@ -152,19 +152,19 @@ export const AXIS = { fill: '#717d90', fontSize: 11 }
    so no chart can drift back. */
 export const TOOLTIP = {
   contentStyle: {
-    background: '#1b2433',
-    border: '1px solid #3b4a61',
+    background: '#ffffff',
+    border: '1px solid #cfd6e0',
     borderRadius: 10,
     padding: '8px 11px',
-    boxShadow: '0 12px 28px -10px rgba(0,0,0,0.75)',
+    boxShadow: '0 12px 28px -10px rgba(16, 24, 40, 0.18)',
   },
-  labelStyle: { color: '#eef1f6', fontSize: 12, fontWeight: 600, marginBottom: 4 },
-  itemStyle: { color: '#a3aebf', fontSize: 12, padding: 0 },
-  cursor: { stroke: '#3b4a61', strokeWidth: 1 },
+  labelStyle: { color: '#10151c', fontSize: 12, fontWeight: 600, marginBottom: 4 },
+  itemStyle: { color: '#54606f', fontSize: 12, padding: 0 },
+  cursor: { stroke: '#cfd6e0', strokeWidth: 1 },
 }
 
 /** Bar and pie charts want a filled cursor rather than a line. */
-export const TOOLTIP_FILL = { ...TOOLTIP, cursor: { fill: 'rgba(109, 140, 245, 0.08)' } }
+export const TOOLTIP_FILL = { ...TOOLTIP, cursor: { fill: 'rgba(47, 86, 217, 0.06)' } }
 
 const PROVENANCE = {
   measured: { icon: FlaskConical, label: 'measured', className: 'text-good border-good/30',
@@ -193,7 +193,7 @@ export function Mono({ children, className = '' }) {
 
 export function Empty({ title, children }) {
   return (
-    <div className="rounded-lg border border-dashed border-line bg-surface-0/40 px-5 py-10 text-center">
+    <div className="rounded-lg border border-dashed border-line bg-surface-0 px-5 py-10 text-center">
       {title && <div className="text-body font-medium text-ink-muted">{title}</div>}
       {children && <div className="mt-1 text-meta text-ink-faint">{children}</div>}
     </div>

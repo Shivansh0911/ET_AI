@@ -11,8 +11,9 @@ produced by a script in `backend/ml/` and visible in the running UI.
 
 The deck currently pitches "AI detects threats". Every team will pitch that. Pitch this instead:
 
-> **Our detector catches 37% of attacks it has never seen. We will show you.
-> Then we will fix it live, on stage, in ninety seconds — and show you where it still fails.**
+> **We catch every attack campaign we have never seen before, and 80% of the individual
+> flows inside them. Then we fix the remaining 20% live, on stage, in ninety seconds —
+> and show you the family it still cannot see.**
 
 That is a demo nobody else in the room can give, because it requires having measured the failure
 first. Innovation (25%) and Technical Excellence (20%) both land on it.
@@ -50,7 +51,7 @@ no answer at all.
 | "Automated containment actions" | "71.4% of playbook steps executed autonomously; anything above 10 endpoints waits for a human; every action sealed in a hash chain" |
 
 **Replace the weakest tile with the headline capability:**
-*Learns from your analysts* — 500 verdicts, recall 36.7% → 98.8%, FPR 0.09% → 0.40%.
+*Learns from your analysts* — 500 verdicts, per-flow recall 79.7% → 99.0%.
 
 **And add:** *Tamper-evident auditability* — edit one ledger row and verification names the entry
 that broke. Ten-second live demo, maps directly onto a graded criterion.
@@ -61,9 +62,9 @@ Rebuild entirely. Every figure on it was invented.
 
 | Was (invented) | Now (measured) |
 |---|---|
-| MTTD "Weeks → 4.2 min, 99.9% faster" | **Recall 36.7% → 98.8% after 500 analyst verdicts** — with the learning curve |
+| MTTD "Weeks → 4.2 min, 99.9% faster" | **7 of 7 campaigns detected, median 1 flow to first alert** — a real MTTD analogue, measured |
 | MTTR "Days → 12.8 min, 99.5% faster" | **71.4% automation coverage**, 1 step gated, 1 manual |
-| "False Negatives: Near-zero" | **FNR 63.3% → 1.2%**, with Bot at 0.3% and Infiltration at 0.0% shown alongside |
+| "False Negatives: Near-zero" | **Per-flow recall 79.7% frozen, 99.0% after 500 verdicts**, with Bot at 0.7% shown alongside |
 | "Playbook Time: Hours → Seconds" | **22 ms p50 detection latency**, and 7 actions sealed in the ledger |
 
 **Add the slide that wins the room** — *Where it still fails*: Bot 0.3%, Infiltration 0.0%,
@@ -89,8 +90,9 @@ column. Which is why the submission is not about the classifier — it is about 
 it meets traffic it does not know.
 
 **"Your metrics look too good."**
-The ones that look too good are the random-split numbers, and we demoted them for exactly that
-reason. Our headline is 36.7% recall. The 98.8% is what 500 human verdicts buy, and the same
+The ones that looked too good were the random-split numbers, and we demoted them for exactly
+that reason. Our per-flow headline is 79.7% on capture days the model never saw, at a
+false-positive budget fixed in advance. The 99.0% is what 500 human verdicts buy, and the same
 experiment shows those verdicts buying 0.0 points against a different campaign.
 
 **"Could this run on a real network?"**
