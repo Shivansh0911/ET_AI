@@ -9,28 +9,31 @@ Every entry here carries the SHA-256 of the previous entry, so the chain is tamp
 altering any historical record breaks every hash that follows it, and verify() reports exactly
 where. That is the difference between "we logged it" and "we can prove what we logged".
 
-Persistence is a JSONL file. On an ephemeral free-tier dyno that file does not survive a
-restart, which is a deployment limitation rather than a design one and is stated as such in
-the API response.
+Persistence is SQLite, so the chain survives a process restart — which matters for an audit
+record. A JSONL mirror is written alongside for easy export and inspection. On a truly
+ephemeral dyno the disk still resets between deploys; that is a hosting choice, and pointing
+AUDIT_DB_PATH at a mounted volume or managed Postgres makes it durable without code change.
 """
 from __future__ import annotations
 
 import hashlib
 import json
 import os
+import sqlite3
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
-LEDGER_PATH = Path(os.environ.get(
-    "AUDIT_LEDGER_PATH",
-    Path(__file__).resolve().parent.parent / "data" / "audit_ledger.jsonl"))
+_DATA = Path(__file__).resolve().parent.parent / "data"
+DB_PATH = Path(os.environ.get("AUDIT_DB_PATH", _DATA / "audit_ledger.db"))
+LEDGER_PATH = Path(os.environ.get("AUDIT_LEDGER_PATH", _DATA / "audit_ledger.jsonl"))
 
 GENESIS = "0" * 64
 
 _lock = threading.Lock()
 _entries: list[dict] = []
 _loaded = False
+_db: sqlite3.Connection | None = None
 
 
 def _digest(entry: dict) -> str:
@@ -40,18 +43,66 @@ def _digest(entry: dict) -> str:
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
+def _connect() -> sqlite3.Connection | None:
+    """Open the SQLite ledger, tolerating a read-only filesystem without taking the API down."""
+    global _db
+    if _db is not None:
+        return _db
+    try:
+        DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+        _db = sqlite3.connect(DB_PATH, check_same_thread=False)
+        _db.execute("CREATE TABLE IF NOT EXISTS ledger "
+                    "(seq INTEGER PRIMARY KEY, hash TEXT NOT NULL, entry TEXT NOT NULL)")
+        _db.commit()
+    except sqlite3.Error:
+        _db = None
+    return _db
+
+
 def _ensure_loaded() -> None:
+    """Load the chain from SQLite on first use; migrate a legacy JSONL ledger if present."""
     global _loaded
     if _loaded:
         return
-    if LEDGER_PATH.exists():
+
+    db = _connect()
+    if db is not None:
+        rows = db.execute("SELECT entry FROM ledger ORDER BY seq").fetchall()
+        if rows:
+            _entries.extend(json.loads(row[0]) for row in rows)
+        elif LEDGER_PATH.exists():
+            # One-time migration from the old JSONL-only ledger into SQLite.
+            for line in LEDGER_PATH.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    try:
+                        entry = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    _entries.append(entry)
+                    db.execute("INSERT OR REPLACE INTO ledger VALUES (?, ?, ?)",
+                               (entry["seq"], entry["hash"], json.dumps(entry)))
+            db.commit()
+    elif LEDGER_PATH.exists():
         for line in LEDGER_PATH.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 try:
                     _entries.append(json.loads(line))
                 except json.JSONDecodeError:
                     continue
+
     _loaded = True
+
+
+def _reload_from_disk() -> None:
+    """Drop the in-memory cache and re-read from SQLite — simulates a process restart (tests)."""
+    global _loaded, _db
+    with _lock:
+        _entries.clear()
+        _loaded = False
+        if _db is not None:
+            _db.close()
+            _db = None
+        _ensure_loaded()
 
 
 def append(actor: str, action: str, target: str, params: dict | None = None,
@@ -77,13 +128,22 @@ def append(actor: str, action: str, target: str, params: dict | None = None,
         entry["hash"] = _digest(entry)
         _entries.append(entry)
 
+        # SQLite is the durable store; the JSONL mirror is a convenience export. Neither
+        # failing may take the API down — the in-memory chain stays authoritative and
+        # verify() still works.
+        db = _connect()
+        if db is not None:
+            try:
+                db.execute("INSERT OR REPLACE INTO ledger VALUES (?, ?, ?)",
+                           (entry["seq"], entry["hash"], json.dumps(entry)))
+                db.commit()
+            except sqlite3.Error:
+                pass
         try:
             LEDGER_PATH.parent.mkdir(parents=True, exist_ok=True)
             with open(LEDGER_PATH, "a", encoding="utf-8") as fh:
                 fh.write(json.dumps(entry) + "\n")
         except OSError:
-            # A read-only or full filesystem must not take the API down; the in-memory
-            # chain stays authoritative for this process and verify() still works.
             pass
 
         return entry
@@ -152,7 +212,10 @@ def stats() -> dict:
         "total_actions": len(_entries),
         "executed_autonomously": automated,
         "held_for_human_approval": gated,
-        "persistence": str(LEDGER_PATH),
-        "persistence_caveat": "Free-tier dynos have ephemeral disks; the chain restarts with "
-                              "the process. Durability is a hosting choice, not a design limit.",
+        "persistence": f"SQLite ({DB_PATH.name}), JSONL mirror ({LEDGER_PATH.name})",
+        "durable": _connect() is not None,
+        "persistence_note": "The chain is stored in SQLite and survives a process restart. On a "
+                            "truly ephemeral dyno the disk still resets between deploys; pointing "
+                            "AUDIT_DB_PATH at a mounted volume or managed database makes it "
+                            "durable with no code change.",
     }

@@ -132,6 +132,33 @@ export default function Evidence() {
         </Card>
       )}
 
+      {detection?.operating_points?.length > 0 && (
+        <Card title="Two operating points"
+          hint="The detector is high-recall by default. A precision-leaning point trades recall for a lighter alert load — a SOC picks per its alert budget."
+          aside={<Provenance kind="measured" />}>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {detection.operating_points.map((op) => (
+              <div key={op.label} className="rounded-lg border border-line bg-surface-2 p-4">
+                <div className="text-body font-medium text-ink">{op.label}</div>
+                <div className="mt-2 grid grid-cols-3 gap-3">
+                  <Stat label="Recall" value={pct1(op.recall)} size="tabular"
+                    tone={op.recall > 0.75 ? 'good' : 'default'} />
+                  <Stat label="Precision" value={pct1(op.precision)} size="tabular" />
+                  <Stat label="Alerts / 1k" value={op.alerts_per_1000_flows} size="tabular"
+                    tone={op.alerts_per_1000_flows > 200 ? 'bad' : 'muted'} />
+                </div>
+                <Note>{op.note}</Note>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 border-t border-line pt-3">
+            <Note>Alerts per 1,000 flows is rate-independent. At the shipped point the analyst
+              feedback loop then suppresses false positives over time; the precision point is the
+              lever for a team that cannot absorb the volume up front.</Note>
+          </div>
+        </Card>
+      )}
+
       <Card title="Detector on unseen captures" hint={detection?.why_this_split}
         aside={<Provenance kind="measured" />}>
         {!detection?.available ? <Empty title="Not evaluated yet">{detection?.reason}</Empty> : (

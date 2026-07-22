@@ -150,7 +150,10 @@ export default function AuditLedger() {
             </table>
           </div>
         )}
-        <p className="mt-3 text-meta leading-relaxed text-ink-faint">{audit.stats.persistence_caveat}</p>
+        <p className="mt-3 text-meta leading-relaxed text-ink-faint">
+          {audit.stats.persistence_note || audit.stats.persistence_caveat}
+          {audit.stats.durable && ' Stored in SQLite — survives a restart.'}
+        </p>
       </div>
     </div>
   )

@@ -49,6 +49,28 @@ def detection() -> dict:
 
     cross = report["cross_day"]
     superseded = _read("detection.json") or {}
+
+    # Two operating points, both measured, so "212 alerts per 1,000 flows" is not the only
+    # answer on the table. The shipped point maximises recall; the precision-leaning point
+    # trades recall for a lighter alert load. A SOC picks per its alert budget.
+    variants = report.get("all_variants", {})
+
+    def operating_point(key: str, label: str, note: str) -> dict | None:
+        v = variants.get(key)
+        if not v:
+            return None
+        return {"label": label, "recall": v["recall"], "precision": v["precision"],
+                "false_positive_rate": v["false_positive_rate"],
+                "alerts_per_1000_flows": v.get("alerts_per_1000_flows"), "note": note}
+
+    operating_points = [p for p in (
+        operating_point(f"supervised+{report.get('novelty_head_chosen')}@fpr_1pct",
+                        "High recall (shipped)",
+                        "Both heads, union. Catches the most, at a heavier alert load."),
+        operating_point("supervised_only@fpr_1pct", "High precision",
+                        "Supervised head only. Fewer alerts, higher precision, lower recall."),
+    ) if p]
+
     return {
         "available": True,
         "provenance": "measured",
@@ -67,6 +89,7 @@ def detection() -> dict:
         "test_benign_rows": cross["tn"] + cross["fp"],
         "confusion": {k: cross[k] for k in ("tp", "fp", "tn", "fn")},
         "alerts_per_1000_flows": cross.get("alerts_per_1000_flows"),
+        "operating_points": operating_points,
         "architecture": report.get("architecture"),
         "false_positive_budget": report.get("fpr_budget"),
         # Campaign-level detection is a DIFFERENT denominator from per-flow recall and is

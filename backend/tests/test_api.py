@@ -305,3 +305,34 @@ def test_remediation_labels_the_illustrative_mapping(client):
     r = client.get("/api/remediation").json()
     assert "illustrative" in r["provenance"]
     assert "not" in r["provenance"]["illustrative"].lower()  # inventories are not public
+
+
+# ─── scalability: durable ledger, auth gate, dual operating point ───
+
+def test_ledger_survives_a_simulated_restart():
+    """The audit chain must persist and still verify after the process is gone."""
+    before = len(ledger.entries())
+    ledger.append("op", "persistence_probe", "host-x", blast_radius=1)
+    ledger.append("op", "persistence_probe", "host-y", blast_radius=1)
+    ledger._reload_from_disk()   # drop the in-memory cache, re-read from SQLite
+    assert len(ledger.entries()) >= before + 2
+    assert ledger.verify()["intact"], "the chain must still verify after a reload"
+
+
+def test_state_changing_endpoints_gate_on_a_token(client, monkeypatch):
+    monkeypatch.setenv("CYBERSENTINEL_TOKEN", "test-secret")
+    assert client.post("/api/respond", json={"alert_id": "latest"}).status_code == 401
+    assert client.get("/api/dashboard").status_code == 200, "read-only telemetry stays open"
+    ok = client.post("/api/respond", json={"alert_id": "latest"},
+                     headers={"Authorization": "Bearer test-secret"})
+    assert ok.status_code == 200
+
+
+def test_two_operating_points_are_reported(client):
+    points = client.get("/api/metrics").json()["detection"]["operating_points"]
+    assert len(points) == 2, "a high-recall and a high-precision point must both be shown"
+    recalls = [p["recall"] for p in points]
+    alerts = [p["alerts_per_1000_flows"] for p in points]
+    # The high-recall point catches more but alerts more — the trade must be visible.
+    assert max(recalls) > min(recalls)
+    assert max(alerts) > min(alerts)

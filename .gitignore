@@ -17,6 +17,7 @@ backend/data/processed/
 
 # Runtime audit chain — regenerated per process, never a committed artifact
 backend/data/audit_ledger.jsonl
+backend/data/audit_ledger.db
 backend/data/analyst_feedback.jsonl
 
 # OS

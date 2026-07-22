@@ -9,7 +9,7 @@ import os
 import time
 from typing import List, Literal, Optional
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -50,6 +50,22 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
+
+def require_token(authorization: str | None = Header(default=None)) -> None:
+    """Gate the state-changing endpoints behind a bearer token when one is configured.
+
+    Read-only telemetry stays open — a judge or a dashboard should not need a secret to see
+    the numbers. But the endpoints that execute containment, submit feedback, or run the
+    tamper demo mutate state, so they require `Authorization: Bearer <CYBERSENTINEL_TOKEN>`
+    whenever that env var is set. Unset (the default for the local demo) leaves them open and
+    the API says so. The token is read per request so it can be rotated without a restart.
+    """
+    token = os.environ.get("CYBERSENTINEL_TOKEN", "").strip()
+    if not token:
+        return
+    if authorization != f"Bearer {token}":
+        raise HTTPException(status_code=401, detail="missing or invalid bearer token")
+
 
 STREAM_SIZE = 600
 LLM_CACHE_TTL = 300  # seconds — the free Groq tier will rate-limit under demo clicking
@@ -122,7 +138,10 @@ class FeedbackRequest(BaseModel):
 @app.get("/")
 def root():
     return {"status": "CyberSentinel API active", "version": app.version,
-            "detector": detector_status()}
+            "detector": detector_status(),
+            "auth": {"state_changing_endpoints_gated": bool(os.environ.get("CYBERSENTINEL_TOKEN", "").strip()),
+                     "note": "Set CYBERSENTINEL_TOKEN to require a bearer token on POST endpoints "
+                             "that mutate state; read-only telemetry is always open."}}
 
 
 @app.get("/api/dashboard")
@@ -168,7 +187,7 @@ def get_metrics():
     return snapshot(latency=_stream["latency"], automation=_last_coverage)
 
 
-@app.post("/api/feedback")
+@app.post("/api/feedback", dependencies=[Depends(require_token)])
 def submit_feedback(req: FeedbackRequest):
     """Record an analyst verdict and let the adaptive layer learn from it.
 
@@ -202,7 +221,7 @@ def feedback_state():
     }
 
 
-@app.post("/api/feedback/reset")
+@app.post("/api/feedback/reset", dependencies=[Depends(require_token)])
 def feedback_reset():
     """Clear live verdicts. The audit ledger keeps the history either way."""
     state = feedback.reset()
@@ -328,7 +347,7 @@ def get_threat_intel(req: ThreatIntelRequest):
                    lambda: search_threat_intel(req.query))
 
 
-@app.post("/api/respond")
+@app.post("/api/respond", dependencies=[Depends(require_token)])
 def generate_response(req: RespondRequest):
     global _last_coverage
     alert = _detections[0] if _detections else {
@@ -354,7 +373,7 @@ def verify_audit():
     return ledger.verify()
 
 
-@app.post("/api/audit/simulate-tamper")
+@app.post("/api/audit/simulate-tamper", dependencies=[Depends(require_token)])
 def simulate_tamper():
     """Demonstrate tamper detection against a copy — the live chain is never modified."""
     return ledger.simulate_tamper()
