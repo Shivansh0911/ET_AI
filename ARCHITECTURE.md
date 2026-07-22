@@ -144,7 +144,7 @@ flowchart LR
     R --> J[("Metrics artifacts<br/>JSON, committed")]
     R -->|"optional"| G["Groq<br/>llama-3.3-70b"]
     R -->|"optional"| TV["Tavily"]
-    R --> L[("Audit ledger<br/>JSONL, ephemeral disk")]
+    R --> L[("Audit ledger<br/>SQLite, survives restart")]
 ```
 
 Measured footprint: 234 MB RSS against Render's 512 MB free tier. The LLM services are
@@ -154,9 +154,9 @@ optional — detection, the learning loop, metrics and the audit chain all work 
 
 | Named in PS#7 | Status |
 |---|---|
-| CVE prioritisation agent | Not built. Needs a real asset inventory and a live NVD feed; a thin version would be demo-ware. |
+| CVE prioritisation agent | **Built (MVP)** — engine/vuln.py over a real NVD slice; asset mapping illustrative. |
 | Cyber resilience digital twin | Not built. A project in its own right. |
 | RAG over CERT-In advisories | Not built. Would need a scraped corpus we do not have. |
-| Persistence, auth, multi-process | Not built. Single-process demo; the ledger resets with the dyno. |
+| Persistence, auth | **Built** — SQLite ledger survives restart; bearer-token gate on write endpoints. Multi-process path in SCALABILITY.md. |
 
 See [GAPS.md](GAPS.md) for the full audit.

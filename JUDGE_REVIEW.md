@@ -106,3 +106,33 @@ video, one graph, one CVE panel, and a minimal scalability story — in that ord
 from "impressive and honest" to "impressive, honest, and complete against the brief." Skip them and
 it remains a very good submission that a broader entry can edge out on Business Impact and
 Scalability, which together are 40% of the score.
+
+---
+
+## Re-score after the winning-path build
+
+The graph, the CVE queue, the scalability hardening and the OT plane are now built and tested.
+Re-grading honestly:
+
+| Criterion | Weight | Was | Now | What changed |
+|---|---|---|---|---|
+| Innovation | 25% | 8/10 | **9/10** | Attack graph (source→asset→technique, pivots) closes the graph-AI gap on top of the feedback loop and ledger. |
+| Business Impact | 25% | 5/10 | **7/10** | CVE remediation queue (the government bullet) + IT/OT correlation. Still no named-actor attribution or digital twin. |
+| Technical Excellence | 20% | 8/10 | **8/10** | Held. 52 tests now, all four new capabilities asserted; RAG still shallow, "knowledge graph" still a table. |
+| Scalability | 15% | 3/10 | **6/10** | Durable SQLite ledger, token-gated writes, a documented worker path. Stream state still process-global (a demo fixture, and named as one). |
+| UX | 15% | 8/10 | **8/10** | Two strong new screens; also more tabs to keep legible. |
+
+**Weighted: ~6.4 → ~7.9/10.** That crosses from "will place well" into "can win", provided the
+two remaining deliverables land: the **demo video** (script ready in DEMO_SCRIPT.md, the user's to
+record) and the **rebuilt deck** (content ready in DECK.md).
+
+### What still separates this from a 9+ overall
+
+- **Named-actor / campaign attribution** (we map to techniques, not APT groups).
+- **A real knowledge graph** rather than an ATT&CK table, and RAG over an actual advisory corpus.
+- **The digital twin** — untouched, and correctly so under deadline.
+- **The alert load** — 212/1k at the high-recall point is still heavy; the precision point and the
+  loop are the answers, but a judge will still press on it.
+
+None of those are cheap, and attempting them now would risk the rigour that is the moat. The
+highest-value remaining action is not more code — it is the video and the deck.

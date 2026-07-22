@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Activity, GitMerge, Route, FlaskConical, ClipboardList, ScrollText, Eye } from 'lucide-react'
+import { Activity, GitMerge, Share2, Route, FlaskConical, ShieldCheck, ClipboardList, ScrollText, Eye } from 'lucide-react'
 import { api } from '../utils/api'
 import { Card, DataRow, Mono, SectionTitle, Stat, StatStrip } from './ui'
 import { Mark, Wordmark } from './Logo'
@@ -10,7 +10,9 @@ import { Mark, Wordmark } from './Logo'
 
 const TABS = [
   { icon: Activity, name: 'Operations', text: 'The live console. Flows being scored right now, the alerts that crossed the threshold, and the triage queue where you mark each one real or false.' },
-  { icon: GitMerge, name: 'Incidents', text: 'Where two separate sensors agree. Network activity too quiet to alert on, plus host activity on the same machine in the same hour, becomes one incident neither would have raised alone.' },
+  { icon: GitMerge, name: 'Incidents', text: 'Where separate sensors agree. Quiet network activity, host activity, and a simulated OT/ICS signal on the same asset become one incident neither plane would have raised alone — including cross-domain IT+OT.' },
+  { icon: Share2, name: 'Attack graph', text: 'Threat sources, targeted assets and ATT&CK techniques as one graph, with the convergence pivots and the longest attack path called out.' },
+  { icon: ShieldCheck, name: 'Remediation', text: 'Real CVEs ranked by severity, asset exposure and live attack activity — the patch-first queue for a team that cannot patch everything at once.' },
   { icon: Route, name: 'Progression', text: 'How far the attacker has got, drawn across all fourteen MITRE ATT&CK stages, with the model’s guess at the next move marked separately as a projection.' },
   { icon: FlaskConical, name: 'Evidence', text: 'Every number this product claims, with the script that produced it. Including the ones that are unflattering.' },
   { icon: ClipboardList, name: 'Response', text: 'Drafts a containment playbook, runs the steps that can be automated, and stops anything with too wide a blast radius for a human to approve.' },

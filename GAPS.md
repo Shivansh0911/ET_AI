@@ -12,7 +12,7 @@ checked against the code as it stands.
 | **Behavioural Anomaly Detection Engine** | **CLOSED** | `ml/train_hybrid.py` now fits a novelty head on **benign traffic only** alongside the supervised classifier. It never sees an attack during fitting, so what it catches owes nothing to prior knowledge. PortScan went 4.3% → 52.3% and overall per-flow recall 60.1% → 79.7%. |
 | **APT Campaign Attribution & Prediction** | **PARTIAL** | Technique attribution is real and measured (54.1% top-1, `ml/eval_attribution.py`). Next-move prediction exists but is an LLM projection, correctly labelled. Missing: CERT-In advisories as a source, and *campaign*-level attribution (we map to techniques, not to named actors). |
 | **Autonomous Incident Response Orchestrator** | **HAVE** | `engine/actions.py` — typed catalog, blast-radius gate at 10 endpoints, 71.4% coverage measured, every action hash-chained. Actions are simulated and say so. |
-| **Government Infrastructure Vulnerability Prioritisation** — CVE feeds, exploitability in topology context, risk-ranked remediation queue | **MISSING ENTIRELY** | Nothing in the repo touches CVEs, asset inventory, or patch prioritisation. |
+| **Government Infrastructure Vulnerability Prioritisation** | **CLOSED (MVP)** | engine/vuln.py ranks real NVD CVEs by CVSS x exposure x live attack activity into a remediation queue. Asset-to-software mapping is illustrative; CVEs and formula are real. |
 | **Cyber Resilience Digital Twin** — attack-path modelling, red-team simulation | **MISSING ENTIRELY** | No simulation layer. |
 
 ## 2. "Suggested technologies"
@@ -21,8 +21,8 @@ checked against the code as it stands.
 |---|---|---|
 | Agentic AI / multi-agent | **HAVE** | Six coordinated stages, each with a real job. |
 | **Unsupervised anomaly detection (UEBA)** | **CLOSED** | IsolationForest over rank-normalised benign traffic, served as the second head. |
-| **Graph AI** (attack path, lateral movement) | **MISSING** | We have `source_ip`/`dest_ip` on every flow and never build a graph from them. |
-| RAG over threat intel / CVE / CERT-In | **PARTIAL, weakest form** | `agents/threat_intel.py` does a Tavily web search and summarises. That is search-and-summarise, not retrieval over a curated corpus. No CVE feed, no CERT-In advisory corpus. |
+| **Graph AI** (attack path, lateral movement) | **CLOSED** | engine/graph.py builds a source->asset->technique graph with pivots and longest-path. Inferred topology, labelled not-confirmed-lateral-movement. |
+| RAG over threat intel / CVE / CERT-In | **PARTIAL, improved** | Tavily search-and-summarise, plus a real NVD CVE slice now drives the remediation queue. Still no CERT-In advisory corpus. |
 | Knowledge graph (ATT&CK TTP mapping) | **PARTIAL** | 697 techniques with tactics and a revocation map — a *table*, not a graph. No relationships traversed. |
 | SOAR integration & response automation | **HAVE** | See orchestrator above. |
 
@@ -43,7 +43,7 @@ checked against the code as it stands.
 | Innovation | 25% | Strong: the analyst-feedback loop and the tamper-evident ledger are genuinely uncommon. Weakened by having no unsupervised layer and no graph. |
 | Business Impact | 25% | **Improved.** 100% campaign detection and 79.7% per-flow recall read as a working product. Still no CVE/remediation angle. |
 | Technical Excellence | 20% | Good rigour (held-out splits, published baselines, 37 tests). Leaking on breadth: three named technologies absent. |
-| Scalability | 15% | **Leaking.** Single process, in-memory stream state, ephemeral ledger, no auth. |
+| Scalability | 15% | **Improved.** Durable SQLite ledger, token-gated write endpoints, a documented path to N stateless workers (SCALABILITY.md). Stream state still process-global (a demo fixture). |
 | User Experience | 15% | Strong after the redesign. |
 
 ## 5. Expected deliverables
@@ -86,3 +86,17 @@ never justified — and one third from the new novelty head. Both are reported s
 
 Still open, and still named rather than faked: CVE prioritisation, the digital twin, CERT-In
 advisory RAG, graph-based lateral movement, and scalability hardening.
+
+
+---
+
+## Update after the third pass (winning path)
+
+Closed: graph AI (attack graph), CVE/vulnerability prioritisation, and a durable + auth-gated
+scalability story. Added a simulated OT plane so incidents span IT and OT — honouring the "IT and
+OT" wording. Produced the two missing deliverables in text form (DECK.md, DEMO_SCRIPT.md); the
+video is the user's to record.
+
+Still open, still named rather than faked: the full Cyber Resilience Digital Twin, CERT-In
+advisory RAG, and named-actor campaign attribution. These need corpora or simulation we cannot
+build convincingly under deadline.

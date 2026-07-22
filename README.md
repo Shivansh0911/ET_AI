@@ -105,6 +105,9 @@ could not be shown to beat a static baseline.
 | Response automation coverage | 71.4% — 5 of 7 steps autonomous, 1 gated by blast radius, 1 manual |
 | Detection latency | measured p50/p95 per request, shown live |
 | Zeek ingestion coverage | 31.9% of the feature space (10 direct, 12 approximated, 47 unavailable) |
+| Attack graph | source -> asset -> technique with convergence pivots and longest-path |
+| CVE remediation | real NVD CVEs ranked by CVSS x exposure x live activity |
+| IT+OT correlation | incidents that span network and a simulated Modbus/ICS plane |
 
 ---
 
@@ -146,7 +149,7 @@ python ml/train_hybrid.py          # both heads + calibration -> metrics/baselin
 python ml/eval_continual.py        # the learning result      -> metrics/continual.json
 python ml/trim_mitre.py && python ml/prepare_attack_logs.py && python ml/eval_attribution.py
 python ml/eval_fusion.py
-python -m pytest tests -q          # 40 tests
+python -m pytest tests -q          # 52 tests
 ```
 
 The tests assert the claims, not just the routes: that the cross-capture split is the headline,
@@ -156,7 +159,7 @@ that the guardrails refuse and log.
 
 ## Documentation
 
-[ARCHITECTURE.md](ARCHITECTURE.md) — system and evaluation diagrams ·
+[ARCHITECTURE.md](ARCHITECTURE.md) — diagrams · [SCALABILITY.md](SCALABILITY.md) — scale path · [DECK.md](DECK.md) · [DEMO_SCRIPT.md](DEMO_SCRIPT.md) ·
 [GAPS.md](GAPS.md) — audit against every line of PS#7 ·
 [REVIEW.md](REVIEW.md) — the engineering review that drove the rebuild ·
 [DEPLOYMENT.md](DEPLOYMENT.md) — hosting and demo runbook ·
