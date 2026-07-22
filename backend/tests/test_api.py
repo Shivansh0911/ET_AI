@@ -277,3 +277,31 @@ def test_graph_pivots_have_converging_sources(client):
     for pivot in g["pivots"]:
         assert pivot["converging_sources"] >= 2, "a pivot needs at least two sources converging"
         assert pivot["techniques"] >= 1, "a pivot needs host-level technique activity"
+
+
+# ─── CVE prioritisation (Business Impact: government vulnerability queue) ───
+
+def test_remediation_queue_ranks_by_the_published_formula(client):
+    r = client.get("/api/remediation").json()
+    assert r["available"], r.get("reason")
+    queue = r["queue"]
+    assert queue and "priority" in queue[0]
+    # Strictly non-increasing by priority.
+    assert all(queue[i]["priority"] >= queue[i + 1]["priority"] for i in range(len(queue) - 1))
+    # The formula must be shown, not hidden.
+    assert "CVSS" in r["formula"] and "exposure" in r["formula"]
+
+
+def test_remediation_uses_real_cvss(client):
+    r = client.get("/api/remediation").json()
+    for item in r["queue"]:
+        assert 0 < item["cvss"] <= 10, "CVSS must be a real base score from NVD"
+        assert item["priority"] == round(
+            item["components"]["cvss_normalised"] * item["components"]["exposure"]
+            * item["components"]["activity_multiplier"] * 100, 1), "priority must equal its components"
+
+
+def test_remediation_labels_the_illustrative_mapping(client):
+    r = client.get("/api/remediation").json()
+    assert "illustrative" in r["provenance"]
+    assert "not" in r["provenance"]["illustrative"].lower()  # inventories are not public

@@ -18,7 +18,7 @@ from agents.attack_mapper import build_kill_chain, predict_next_move
 from agents.copilot import chat_with_copilot
 from agents.response_orchestrator import generate_playbook
 from agents.threat_intel import search_threat_intel
-from engine import attribution, feedback, fusion, graph, ingest, ledger, replay
+from engine import attribution, feedback, fusion, graph, ingest, ledger, replay, vuln
 from engine.assets import ASSETS, PROVENANCE
 from engine.metrics_registry import attribution as attribution_metrics
 from engine.metrics_registry import continual as metrics_continual
@@ -217,6 +217,17 @@ def ingest_coverage():
     The honest answer to "could you deploy this?" — a number rather than a shrug.
     """
     return ingest.coverage()
+
+
+@app.get("/api/remediation")
+def get_remediation():
+    """Risk-ranked CVE remediation queue across the monitored assets.
+
+    Real CVEs and CVSS from NVD, ranked by a published formula that folds in how exposed each
+    asset is and how much attack activity it is seeing right now — so the queue is dynamic. The
+    asset-to-software mapping is illustrative and the response says so.
+    """
+    return vuln.remediation_queue(_detections)
 
 
 @app.get("/api/graph")

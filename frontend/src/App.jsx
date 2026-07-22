@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react'
-import { Activity, GitMerge, Share2, Route, FlaskConical, ClipboardList, ScrollText, BookOpen } from 'lucide-react'
+import { Activity, GitMerge, Share2, Route, FlaskConical, ShieldCheck, ClipboardList, ScrollText, BookOpen } from 'lucide-react'
 import Overview from './components/Overview'
 import Argus from './components/Argus'
 import Logo from './components/Logo'
@@ -9,6 +9,7 @@ import { Loading } from './components/ui'
 // keeps the initial payload to what a judge sees in the first five seconds.
 const Incidents = lazy(() => import('./components/Incidents'))
 const AttackGraph = lazy(() => import('./components/AttackGraph'))
+const Remediation = lazy(() => import('./components/Remediation'))
 const AttackChain = lazy(() => import('./components/AttackChain'))
 const Evidence = lazy(() => import('./components/Evidence'))
 const ResponsePanel = lazy(() => import('./components/ResponsePanel'))
@@ -20,6 +21,7 @@ const TABS = [
   { id: 'incidents', label: 'Incidents', icon: GitMerge, component: Incidents },
   { id: 'graph', label: 'Attack graph', icon: Share2, component: AttackGraph },
   { id: 'chain', label: 'Progression', icon: Route, component: AttackChain },
+  { id: 'remediation', label: 'Remediation', icon: ShieldCheck, component: Remediation },
   { id: 'evidence', label: 'Evidence', icon: FlaskConical, component: Evidence },
   { id: 'response', label: 'Response', icon: ClipboardList, component: ResponsePanel },
   { id: 'audit', label: 'Audit trail', icon: ScrollText, component: AuditLedger },
