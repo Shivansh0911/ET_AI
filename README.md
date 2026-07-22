@@ -1,4 +1,4 @@
-# CyberSentinel
+# CyberSentinel(cybersentinell.netlify.app)
 
 Behavioural threat detection for critical national infrastructure that **improves as your
 analysts use it**. Built for the ET AI Hackathon 2026, Problem Statement #7.
