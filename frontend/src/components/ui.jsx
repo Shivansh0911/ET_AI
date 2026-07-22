@@ -4,8 +4,12 @@ import { FlaskConical, BookOpen, ArrowUpRight, ArrowDownRight } from 'lucide-rea
 /* Every visual decision lives here. Components compose these rather than inventing their own
    colours, so the system stays consistent and changes in one place. */
 
-export function Answer({ children }) {
-  return <div className="answer"><ReactMarkdown>{children || ''}</ReactMarkdown></div>
+export function Answer({ children, dark = false }) {
+  return (
+    <div className={dark ? 'answer-dark' : 'answer'}>
+      <ReactMarkdown>{children || ''}</ReactMarkdown>
+    </div>
+  )
 }
 
 /** `tint` gives a card a coloured header band — used sparingly, to group a section. */

@@ -39,6 +39,22 @@ export default {
           hover: '#2545b8',
           soft: 'rgba(47, 86, 217, 0.08)',
           line: 'rgba(47, 86, 217, 0.28)',
+          // For the mark and accents when they sit on a dark chrome surface, where the base
+          // indigo is too low-contrast.
+          bright: '#93a9fb',
+          onDark: 'rgba(125, 151, 247, 0.16)',
+        },
+        // Dark chrome — the top bar and the assistant panel. The rest of the app is light;
+        // these two "system" surfaces are deliberately dark so they read as chrome, not
+        // content. One palette drives both so they stay identical.
+        chrome: {
+          DEFAULT: '#0f1729',
+          raised: '#18223b',
+          line: '#28324d',
+          text: '#eaeef6',
+          muted: '#a2adc4',
+          faint: '#717e99',
+          warn: '#e6b053',   // amber warnings legible on the dark chrome
         },
         // Darkened and desaturated for white. The dark theme's brighter ramp turns garish
         // and illegible on light surfaces.

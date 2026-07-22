@@ -34,10 +34,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-surface-0">
-      <header className="sticky top-0 z-20 border-b border-line bg-surface-1/90 backdrop-blur-md shadow-card">
+      <header className="sticky top-0 z-20 border-b border-chrome-line bg-chrome shadow-md">
         <div className="mx-auto flex max-w-[1440px] flex-wrap items-center gap-x-8 gap-y-1 px-6">
           <button onClick={() => setActive('overview')} className="py-3.5" aria-label="CyberSentinel home">
-            <Logo size={30} />
+            <Logo size={30} dark />
           </button>
 
           <nav className="-mb-px flex flex-1 gap-0.5 overflow-x-auto">
@@ -48,8 +48,8 @@ export default function App() {
                 className={`flex items-center gap-2 whitespace-nowrap border-b-2 px-3.5 py-4
                   text-body transition-colors ${
                     active === id
-                      ? 'border-accent font-medium text-ink'
-                      : 'border-transparent text-ink-faint hover:text-ink-muted'
+                      ? 'border-accent-bright font-medium text-chrome-text'
+                      : 'border-transparent text-chrome-faint hover:text-chrome-muted'
                   }`}
               >
                 <Icon size={14} />
@@ -63,8 +63,8 @@ export default function App() {
             className={`my-2.5 flex shrink-0 items-center gap-2 rounded-lg border px-3 py-1.5
               text-meta font-medium transition-colors ${
                 active === GUIDE.id
-                  ? 'border-accent-line bg-accent-soft text-accent'
-                  : 'border-line bg-surface-2 text-ink-muted hover:border-line-strong hover:text-ink'
+                  ? 'border-accent-bright/40 bg-accent-onDark text-accent-bright'
+                  : 'border-chrome-line bg-chrome-raised text-chrome-muted hover:text-chrome-text'
               }`}
           >
             <BookOpen size={13} />

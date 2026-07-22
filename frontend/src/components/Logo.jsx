@@ -31,28 +31,29 @@ export function Mark({ size = 24, className = '' }) {
   )
 }
 
-export function Wordmark({ className = '' }) {
+export function Wordmark({ className = '', dark = false }) {
   return (
     <span className={`select-none font-semibold tracking-[-0.02em] ${className}`}>
-      <span className="font-medium text-ink-muted">Cyber</span>
-      <span className="text-ink">Sentinel</span>
+      <span className={`font-medium ${dark ? 'text-chrome-muted' : 'text-ink-muted'}`}>Cyber</span>
+      <span className={dark ? 'text-chrome-text' : 'text-ink'}>Sentinel</span>
     </span>
   )
 }
 
-export default function Logo({ size = 28, stacked = false }) {
+export default function Logo({ size = 28, stacked = false, dark = false }) {
   return (
     <div className={`flex items-center gap-2.5 ${stacked ? 'flex-col gap-1.5' : ''}`}>
       <span
-        className="flex items-center justify-center rounded-lg border border-accent-line
-          bg-accent-soft text-accent"
+        className={`flex items-center justify-center rounded-lg border ${
+          dark ? 'border-accent-bright/30 bg-accent-onDark text-accent-bright'
+               : 'border-accent-line bg-accent-soft text-accent'}`}
         style={{ width: size, height: size }}
       >
         <Mark size={Math.round(size * 0.62)} />
       </span>
       <span className="leading-tight">
-        <Wordmark className="text-title" />
-        <span className="block text-[11px] text-ink-faint">
+        <Wordmark className="text-title" dark={dark} />
+        <span className={`block text-[11px] ${dark ? 'text-chrome-faint' : 'text-ink-faint'}`}>
           Detection that learns from your analysts
         </span>
       </span>

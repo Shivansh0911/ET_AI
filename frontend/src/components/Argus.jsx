@@ -115,18 +115,18 @@ export default function Argus() {
       <div className="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-2.5">
         {nudge && (
           <button onClick={launch}
-            className="max-w-[240px] rounded-xl rounded-br-sm border border-line-strong
-              bg-surface-2 px-3.5 py-2.5 text-left text-meta text-ink-muted shadow-float rise
-              transition-colors hover:border-accent-line hover:text-ink">
+            className="max-w-[240px] rounded-xl rounded-br-sm border border-chrome-line
+              bg-chrome px-3.5 py-2.5 text-left text-meta text-chrome-muted shadow-float rise
+              transition-colors hover:border-accent-bright/40 hover:text-chrome-text">
             New here? I can explain what this is and how to drive the demo.
           </button>
         )}
         <button onClick={launch} aria-label={`Open ${ASSISTANT}`}
-          className="flex items-center gap-2.5 rounded-full border border-accent-line
-            bg-surface-2 py-3 pl-3.5 pr-4 text-body font-medium text-ink shadow-float
-            transition-colors hover:border-accent hover:bg-surface-3">
+          className="flex items-center gap-2.5 rounded-full border border-chrome-line
+            bg-chrome py-3 pl-3.5 pr-4 text-body font-medium text-chrome-text shadow-float
+            transition-colors hover:border-accent-bright/50">
           <span className="flex h-6 w-6 items-center justify-center rounded-full
-            bg-accent-soft text-accent">
+            bg-accent-onDark text-accent-bright">
             <Mark size={14} />
           </span>
           Ask {ASSISTANT}
@@ -137,21 +137,21 @@ export default function Argus() {
 
   return (
     <div className="fixed bottom-6 right-6 z-30 flex h-[580px] w-[min(430px,calc(100vw-3rem))]
-      flex-col overflow-hidden rounded-card border border-line-strong bg-surface-1 shadow-float rise">
-      <header className="border-b border-line bg-surface-2 px-4 pt-3">
+      flex-col overflow-hidden rounded-card border border-chrome-line bg-chrome shadow-float rise">
+      <header className="border-b border-chrome-line bg-chrome-raised px-4 pt-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg
-              border border-accent-line bg-accent-soft text-accent">
+              border border-accent-bright/30 bg-accent-onDark text-accent-bright">
               <Mark size={15} />
             </span>
             <div>
-              <div className="text-body font-semibold text-ink">{ASSISTANT}</div>
-              <div className="text-meta text-ink-faint">Scoped to this deployment</div>
+              <div className="text-body font-semibold text-chrome-text">{ASSISTANT}</div>
+              <div className="text-meta text-chrome-faint">Scoped to this deployment</div>
             </div>
           </div>
           <button onClick={() => setOpen(false)} aria-label="Close"
-            className="text-ink-faint transition-colors hover:text-ink">
+            className="text-chrome-faint transition-colors hover:text-chrome-text">
             <X size={16} />
           </button>
         </div>
@@ -160,8 +160,8 @@ export default function Argus() {
           {[['chat', 'Chat', MessageSquare], ['guide', 'Guide', BookOpen]].map(([id, label, Icon]) => (
             <button key={id} onClick={() => setView(id)}
               className={`flex items-center gap-1.5 border-b-2 px-3 py-2 text-meta transition-colors ${
-                view === id ? 'border-accent font-medium text-ink'
-                  : 'border-transparent text-ink-faint hover:text-ink-muted'}`}>
+                view === id ? 'border-accent-bright font-medium text-chrome-text'
+                  : 'border-transparent text-chrome-faint hover:text-chrome-muted'}`}>
               <Icon size={12} /> {label}
             </button>
           ))}
@@ -170,18 +170,18 @@ export default function Argus() {
 
       {view === 'guide' ? (
         <div className="flex-1 space-y-3.5 overflow-y-auto px-4 py-4">
-          <p className="text-meta leading-relaxed text-ink-faint">
+          <p className="text-meta leading-relaxed text-chrome-faint">
             Written by the team, not generated — so you can trust it is not a model improvising.
           </p>
           {GUIDE.map(({ heading, body }) => (
-            <div key={heading} className="rounded-lg border border-line bg-surface-2 px-3.5 py-3">
-              <div className="text-body font-medium text-ink">{heading}</div>
-              <p className="mt-1 text-meta leading-relaxed text-ink-muted">{body}</p>
+            <div key={heading} className="rounded-lg border border-chrome-line bg-chrome-raised px-3.5 py-3">
+              <div className="text-body font-medium text-chrome-text">{heading}</div>
+              <p className="mt-1 text-meta leading-relaxed text-chrome-muted">{body}</p>
             </div>
           ))}
           <button onClick={() => setView('chat')}
-            className="w-full rounded-lg border border-accent-line bg-accent-soft px-3 py-2.5
-              text-meta font-medium text-accent transition-colors hover:bg-accent/20">
+            className="w-full rounded-lg border border-accent-bright/30 bg-accent-onDark px-3 py-2.5
+              text-meta font-medium text-accent-bright transition-colors hover:bg-accent-bright/20">
             Ask me something
           </button>
         </div>
@@ -189,15 +189,15 @@ export default function Argus() {
         <div className="flex-1 space-y-4 overflow-y-auto px-4 py-4">
           {messages.length === 0 && (
             <div className="space-y-3">
-              <p className="text-body text-ink-muted">
+              <p className="text-body text-chrome-muted">
                 I read the live state of this deployment. Start with one of these, or ask your own.
               </p>
               <div className="space-y-1.5">
                 {OPENERS.map((q) => (
                   <button key={q} onClick={() => send(q)}
-                    className="block w-full rounded-lg border border-line bg-surface-2 px-3 py-2
-                      text-left text-meta text-ink-muted transition-colors
-                      hover:border-line-strong hover:text-ink">
+                    className="block w-full rounded-lg border border-chrome-line bg-chrome-raised px-3 py-2
+                      text-left text-meta text-chrome-muted transition-colors
+                      hover:border-accent-bright/40 hover:text-chrome-text">
                     {q}
                   </button>
                 ))}
@@ -208,28 +208,28 @@ export default function Argus() {
           {messages.map((m, i) => (
             m.role === 'user' ? (
               <div key={i} className="flex justify-end">
-                <div className="max-w-[85%] rounded-xl rounded-br-sm bg-accent-soft px-3 py-2
-                  text-body text-ink">{m.content}</div>
+                <div className="max-w-[85%] rounded-xl rounded-br-sm bg-accent-onDark px-3 py-2
+                  text-body text-chrome-text">{m.content}</div>
               </div>
             ) : (
               <div key={i} className="space-y-1.5">
                 {m.refused && (
-                  <div className="flex items-center gap-1.5 text-meta text-severity-medium">
+                  <div className="flex items-center gap-1.5 text-meta text-chrome-warn">
                     <ShieldAlert size={11} /> Declined, and written to the audit trail
                   </div>
                 )}
                 {m.injection && (
-                  <div className="flex items-center gap-1.5 text-meta text-severity-medium">
+                  <div className="flex items-center gap-1.5 text-meta text-chrome-warn">
                     <ShieldAlert size={11} /> Instruction-like text in the telemetry was neutralised
                   </div>
                 )}
-                <Answer>{m.content}</Answer>
+                <Answer dark>{m.content}</Answer>
                 {m.tools?.length > 0 && (
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <Wrench size={10} className="text-ink-faint" />
+                    <Wrench size={10} className="text-chrome-faint" />
                     {m.tools.map((t) => (
-                      <span key={t} className="font-mono rounded border border-line px-1.5 py-px
-                        text-[10px] text-ink-faint">{t}</span>
+                      <span key={t} className="font-mono rounded border border-chrome-line px-1.5 py-px
+                        text-[10px] text-chrome-faint">{t}</span>
                     ))}
                   </div>
                 )}
@@ -238,15 +238,15 @@ export default function Argus() {
           ))}
 
           {busy && (
-            <div className="flex items-center gap-2 text-meta text-ink-faint">
-              <span className="breathe h-1.5 w-1.5 rounded-full bg-accent" /> Thinking
+            <div className="flex items-center gap-2 text-meta text-chrome-faint">
+              <span className="breathe h-1.5 w-1.5 rounded-full bg-accent-bright" /> Thinking
             </div>
           )}
           <div ref={bottomRef} />
         </div>
       )}
 
-      <div className="border-t border-line p-3">
+      <div className="border-t border-chrome-line p-3">
         <div className="flex items-end gap-2">
           <textarea
             ref={inputRef}
@@ -255,12 +255,12 @@ export default function Argus() {
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
             rows={1}
             placeholder={`Ask ${ASSISTANT} about a detection or a technique`}
-            className="flex-1 resize-none rounded-lg border border-line bg-surface-0 px-3 py-2
-              text-body text-ink placeholder:text-ink-faint focus:border-accent-line focus:outline-none"
+            className="flex-1 resize-none rounded-lg border border-chrome-line bg-chrome-raised px-3 py-2
+              text-body text-chrome-text placeholder:text-chrome-faint focus:border-accent-bright/50 focus:outline-none"
           />
           <button onClick={() => send()} disabled={busy || !input.trim()} aria-label="Send"
-            className="rounded-lg border border-accent-line bg-accent-soft p-2.5 text-accent
-              transition-colors hover:bg-accent/20 disabled:opacity-40">
+            className="rounded-lg border border-accent-bright/30 bg-accent-onDark p-2.5 text-accent-bright
+              transition-colors hover:bg-accent-bright/20 disabled:opacity-40">
             <ArrowUp size={15} />
           </button>
         </div>
