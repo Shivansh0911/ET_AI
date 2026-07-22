@@ -23,3 +23,6 @@ backend/data/analyst_feedback.jsonl
 # OS
 .DS_Store
 Thumbs.db
+
+DECK.md
+
