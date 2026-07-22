@@ -147,6 +147,9 @@ export const SERIES = {
   muted: '#67707e',
   inactive: '#cfd6e0',
 }
+// SVG fills need literal values (they cannot read Tailwind classes); these mirror the
+// ink tokens so charts and the graph draw text from one place, not scattered hex.
+export const INK = { primary: '#10151c', muted: '#54606f', faint: '#67707e', onFill: '#ffffff' }
 export const GRID = '#edf0f4'
 export const AXIS = { fill: '#67707e', fontSize: 11 }
 

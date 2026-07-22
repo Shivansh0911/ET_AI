@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Crosshair, Route as RouteIcon } from 'lucide-react'
 import { api } from '../utils/api'
-import { Card, Loading, Failed, Empty, Note, Stat, StatStrip, Mono, severityHex } from './ui'
+import { Card, Loading, Failed, Empty, Note, Stat, StatStrip, Mono, INK, severityHex } from './ui'
 
 // A layered (Sankey-ish) layout rather than force-directed: the graph is inherently three
 // columns — sources on the left, assets in the middle, techniques on the right — so a
@@ -87,7 +87,7 @@ export default function AttackGraph() {
               {[['Threat sources', 90], ['Targeted assets', WIDTH / 2], ['Techniques', WIDTH - 90]].map(
                 ([label, x]) => (
                   <text key={label} x={x} y={14} textAnchor="middle"
-                    style={{ fill: '#67707e', fontSize: 11, fontFamily: 'Inter, sans-serif' }}>
+                    style={{ fill: INK.faint, fontSize: 11, fontFamily: 'Inter, sans-serif' }}>
                     {label}
                   </text>
                 )
@@ -121,11 +121,11 @@ export default function AttackGraph() {
                     style={{ cursor: 'pointer', opacity: dimmed ? 0.25 : 1 }}>
                     <circle cx={n.x} cy={n.y} r={r + (onPath ? 3 : 0)}
                       fill={severityHex(n.severity)}
-                      stroke={onPath ? '#10151c' : 'white'} strokeWidth={onPath ? 1.5 : 1} />
+                      stroke={onPath ? INK.primary : INK.onFill} strokeWidth={onPath ? 1.5 : 1} />
                     <text x={n.col === 2 ? n.x + r + 4 : n.col === 0 ? n.x - r - 4 : n.x}
                       y={n.col === 1 ? n.y - r - 4 : n.y + 3}
                       textAnchor={n.col === 2 ? 'start' : n.col === 0 ? 'end' : 'middle'}
-                      style={{ fill: '#54606f', fontSize: 10, fontFamily: n.kind === 'technique'
+                      style={{ fill: INK.muted, fontSize: 10, fontFamily: n.kind === 'technique'
                         ? 'JetBrains Mono, monospace' : 'Inter, sans-serif' }}>
                       {n.label}
                     </text>
