@@ -361,3 +361,33 @@ def test_ot_only_on_industrial_assets():
     for signal in ot.signals():
         assert signal["asset"] in industrial, "OT signals must only appear on assets with a PLC"
         assert signal["simulated"] is True
+
+
+# ─── named-actor attribution + knowledge graph (Technical Excellence / Business Impact) ───
+
+def test_actor_attribution_is_probabilistic(client):
+    r = client.get("/api/actor").json()
+    if not r.get("available"):
+        pytest.skip("attack graph not built")
+    assert "certainty" in r["caveat"].lower() and "candidate" in r["caveat"].lower()
+    for c in r["candidates"]:
+        assert 0 <= c["overlap"] <= 1 and 0 <= c["coverage_of_observed"] <= 1
+        assert c["shared_techniques"], "a candidate must share at least one technique"
+
+
+def test_actor_candidates_ranked_and_real(client):
+    r = client.get("/api/actor").json()
+    if not r.get("available") or not r["candidates"]:
+        pytest.skip("no candidates in this window")
+    cov = [c["coverage_of_observed"] for c in r["candidates"]]
+    assert cov == sorted(cov, reverse=True), "candidates must be ranked"
+    assert r["group_count"] and r["group_count"] > 50, "must draw on the real ATT&CK group set"
+
+
+def test_predicted_next_excludes_observed(client):
+    r = client.get("/api/actor").json()
+    if not r.get("available"):
+        pytest.skip("attack graph not built")
+    observed = set(r["observed"])
+    for p in r["predicted_next"]:
+        assert p["technique"] not in observed, "a prediction must be a technique not yet seen"

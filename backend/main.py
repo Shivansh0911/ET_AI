@@ -18,7 +18,7 @@ from agents.attack_mapper import build_kill_chain, predict_next_move
 from agents.copilot import chat_with_copilot
 from agents.response_orchestrator import generate_playbook
 from agents.threat_intel import search_threat_intel
-from engine import attribution, feedback, fusion, graph, ingest, ledger, ot, replay, vuln
+from engine import actor, attribution, feedback, fusion, graph, ingest, ledger, ot, replay, vuln
 from engine.assets import ASSETS, PROVENANCE
 from engine.metrics_registry import attribution as attribution_metrics
 from engine.metrics_registry import continual as metrics_continual
@@ -237,6 +237,17 @@ def ingest_coverage():
     The honest answer to "could you deploy this?" — a number rather than a shrug.
     """
     return ingest.coverage()
+
+
+@app.get("/api/actor")
+def get_actor():
+    """Named-actor attribution, next-move prediction and mitigations over the ATT&CK graph.
+
+    Candidate APT groups ranked by shared TTPs with the techniques observed in the current
+    window. Probabilistic — candidates, not certainties, and the response says so.
+    """
+    observed = sorted({d["mitre_id"] for d in _detections if d.get("mitre_id")})
+    return actor.attribute(observed)
 
 
 @app.get("/api/remediation")
